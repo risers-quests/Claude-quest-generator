@@ -89,6 +89,23 @@
   .error-note{ color:var(--stamp); font-family:'IBM Plex Mono', monospace; font-size:12.5px; }
 
   .copy-flash{ color:var(--sage); font-size:11px; margin-left:6px; }
+
+  /* Streaming cursor */
+  .stream-cursor{ animation:blink 0.75s step-end infinite; color:var(--stamp); }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* Refinement panel */
+  .refine-panel{ padding:12px 20px 16px; border-top:1px solid var(--line-soft); background:#FAFAF6; }
+  .refine-input{
+    width:100%; padding:8px 10px; font-family:'Source Serif 4',serif; font-size:14px;
+    border:1px solid var(--line); background:#fff; resize:vertical; color:var(--ink);
+  }
+  .refine-input::placeholder{ opacity:0.5; }
+  .refine-apply-btn{
+    margin-top:8px; padding:7px 16px; background:var(--mystery); color:#fff; border:none;
+    font-size:11px; letter-spacing:0.06em; text-transform:uppercase;
+  }
+  .refine-apply-btn:hover{ background:var(--ink); }
 </style>
 </head>
 <body>
@@ -268,21 +285,78 @@ function updateHint(){
     : 'Pick a World, a Level, and a Core Skill.';
 }
 
-async function callClaude(system, user, jsonMode=false){
+/* Non-streaming call for JSON brief — uses prompt caching on MASTER_SPEC */
+async function callClaude(system, user){
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{
+      'Content-Type':'application/json',
+      'anthropic-version':'2023-06-01',
+      'anthropic-beta':'prompt-caching-2024-07-31',
+    },
     body: JSON.stringify({
       model:'claude-sonnet-4-6',
-      max_tokens:1000,
-      system: jsonMode ? system + '\n\nRespond with ONLY valid JSON. No preamble, no markdown fences, no commentary.' : system,
+      max_tokens:500,
+      system:[
+        { type:'text', text:system, cache_control:{ type:'ephemeral' } },
+        { type:'text', text:'\n\nRespond with ONLY valid JSON. No preamble, no markdown fences, no commentary.' }
+      ],
       messages:[{role:'user', content:user}]
     })
   });
-  if(!res.ok) throw new Error('API error ('+res.status+')');
+  if(!res.ok){
+    const errText = await res.text().catch(()=>'');
+    throw new Error('API error ('+res.status+')' + (errText ? ': '+errText.slice(0,200) : ''));
+  }
   const data = await res.json();
-  const text = data.content.map(b=>b.text||'').join('\n');
-  return text;
+  return data.content.map(b=>b.text||'').join('\n');
+}
+
+/* Streaming call — MASTER_SPEC cached, text delivered chunk-by-chunk via onChunk(text) */
+async function callClaudeStream(system, messages, onChunk){
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'anthropic-version':'2023-06-01',
+      'anthropic-beta':'prompt-caching-2024-07-31',
+    },
+    body: JSON.stringify({
+      model:'claude-sonnet-4-6',
+      max_tokens:2000,
+      stream:true,
+      system:[{ type:'text', text:system, cache_control:{ type:'ephemeral' } }],
+      messages
+    })
+  });
+  if(!res.ok){
+    const errText = await res.text().catch(()=>'');
+    throw new Error('API error ('+res.status+')' + (errText ? ': '+errText.slice(0,200) : ''));
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  while(true){
+    const { done, value } = await reader.read();
+    if(done) break;
+    buffer += decoder.decode(value, { stream:true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for(const line of lines){
+      if(!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if(!raw || raw==='[DONE]') continue;
+      try{
+        const evt = JSON.parse(raw);
+        if(evt.type==='content_block_delta' && evt.delta?.type==='text_delta'){
+          fullText += evt.delta.text;
+          onChunk(evt.delta.text);
+        }
+      } catch(_){}
+    }
+  }
+  return fullText;
 }
 
 function stripJsonFence(text){
@@ -293,8 +367,34 @@ function buildContextLine(){
   return `World: ${state.world}\nLevel: ${state.level}\nCore Skill: ${state.coreSkill}\nSubject: ${state.subject}\nLanguage Skill: ${state.langSkill || 'none — integrate organically'}`;
 }
 
+/* Build the cross-section context to pass into a given section's prompt */
+function buildContextForSection(key){
+  const ctx = {};
+  if(key !== 'hook' && state.sections.hook) ctx.hook = state.sections.hook;
+  if(key === 'questPack' && state.sections.archives) ctx.archives = state.sections.archives;
+  return ctx;
+}
+
 const SECTION_ORDER = ['hook','preQuestCheck','archives','links','questPack'];
 const SECTION_LABELS = { hook:'Hook Card', preQuestCheck:'Pre-Quest Check', archives:'Archives', links:'Links', questPack:'Quest Pack' };
+
+function sectionPrompt(key, brief, context={}){
+  const ctx = `${buildContextLine()}\nQuest ID: ${brief.questId}\nMission Title: ${brief.missionTitle}\nStage 4 Name: ${brief.stage4Name}`;
+
+  /* Inject previously-generated sections as consistency anchors */
+  const hookBlock = context.hook
+    ? `\n\n--- HOOK CARD (already written — maintain all narrative details: setting, characters, stakes) ---\n${context.hook}\n---`
+    : '';
+  const archivesBlock = context.archives
+    ? `\n\n--- ARCHIVES (already written — Quest Pack stages must align with this content and data) ---\n${context.archives}\n---`
+    : '';
+
+  if(key==='hook') return `${ctx}\n\nWrite the Hook Card now, following the Hook Card rules exactly.`;
+  if(key==='preQuestCheck') return `${ctx}\n\nWrite the Pre-Quest Check now, following the rules exactly. Do not reveal the mission's specific scenario, only test the prerequisite skill.`;
+  if(key==='archives') return `${ctx}${hookBlock}\nIntentional procedural gap (Links will follow): ${brief.requiresLinks}\nGap description if any: ${brief.linkGapDescription||'none'}\n\nWrite the Archives now, following the rules exactly.`;
+  if(key==='links') return `${ctx}${hookBlock}\nGap to fill: ${brief.linkGapDescription}\n\nWrite the Links document now, following the rules exactly.`;
+  if(key==='questPack') return `${ctx}${hookBlock}${archivesBlock}\n\nWrite the full Quest Pack now, following the six-stage skeleton exactly, calibrated to Level "${state.level}".`;
+}
 
 async function generateAll(){
   document.getElementById('generateBtn').disabled = true;
@@ -311,11 +411,10 @@ async function generateAll(){
   try {
     const briefRaw = await callClaude(
       MASTER_SPEC,
-      `Generate the foundational Mission Brief for a new Quest.\n${buildContextLine()}\n\nRespond with this exact JSON shape: {"questId": string (World-letter + 2-digit number, e.g. "M-07"), "missionTitle": string, "stage4Name": string ("Experiment Zero" or "Data Analysis" per the rules), "requiresLinks": boolean (true only if Level is exactly "Explorer" AND a genuine procedural gap is needed), "linkGapDescription": string or null}`,
-      true
+      `Generate the foundational Mission Brief for a new Quest.\n${buildContextLine()}\n\nRespond with this exact JSON shape: {"questId": string (World-letter + 2-digit number, e.g. "M-07"), "missionTitle": string, "stage4Name": string ("Experiment Zero" or "Data Analysis" per the rules), "requiresLinks": boolean (true only if Level is exactly "Explorer" AND a genuine procedural gap is needed), "linkGapDescription": string or null}`
     );
     brief = JSON.parse(stripJsonFence(briefRaw));
-    if(state.level !== 'Explorer') brief.requiresLinks = false; // hard rule, enforced regardless of model output
+    if(state.level !== 'Explorer') brief.requiresLinks = false;
     state.brief = brief;
   } catch(e){
     sealRow.innerHTML = `<p class="error-note">Could not draft the mission brief — ${e.message}. <button onclick="generateAll()">Retry</button></p>`;
@@ -330,7 +429,26 @@ async function generateAll(){
     caseArea.appendChild(buildFolderSkeleton(key));
   });
 
-  await Promise.all(sectionsToBuild.map(key => generateSection(key)));
+  /*
+   * Three-phase generation for narrative coherence:
+   *   Phase 1 (parallel): Hook + Pre-Quest Check — no cross-dependencies
+   *   Phase 2 (sequential): Archives — reads Hook so setting/characters stay consistent
+   *   Phase 3 (parallel): Quest Pack + Links — Quest Pack reads both Hook and Archives
+   */
+  await Promise.allSettled([
+    generateSection('hook', {}),
+    generateSection('preQuestCheck', {}),
+  ]);
+
+  await generateSection('archives', { hook: state.sections.hook });
+
+  const phase3 = [ generateSection('questPack', {
+    hook: state.sections.hook,
+    archives: state.sections.archives,
+  }) ];
+  if(brief.requiresLinks) phase3.push(generateSection('links', { hook: state.sections.hook }));
+  await Promise.allSettled(phase3);
+
   saveCurrentQuest();
   renderSavedList();
   document.getElementById('generateBtn').disabled = false;
@@ -345,42 +463,55 @@ function buildFolderSkeleton(key){
     if(body) body.classList.toggle('collapsed');
   };
   const body = el('div',{class:'folder-body', id:'body-'+key});
-  body.textContent = '';
   folder.appendChild(tab);
   folder.appendChild(body);
   return folder;
 }
 
-function sectionPrompt(key, brief){
-  const ctx = `${buildContextLine()}\nQuest ID: ${brief.questId}\nMission Title: ${brief.missionTitle}\nStage 4 Name: ${brief.stage4Name}`;
-  if(key==='hook') return `${ctx}\n\nWrite the Hook Card now, following the Hook Card rules exactly.`;
-  if(key==='preQuestCheck') return `${ctx}\n\nWrite the Pre-Quest Check now, following the rules exactly. Do not reveal the mission's specific scenario, only test the prerequisite skill.`;
-  if(key==='archives') return `${ctx}\nIntentional procedural gap (Links will follow): ${brief.requiresLinks}\nGap description if any: ${brief.linkGapDescription||'none'}\n\nWrite the Archives now, following the rules exactly.`;
-  if(key==='links') return `${ctx}\nGap to fill: ${brief.linkGapDescription}\n\nWrite the Links document now, following the rules exactly.`;
-  if(key==='questPack') return `${ctx}\n\nWrite the full Quest Pack now, following the six-stage skeleton exactly, calibrated to Level "${state.level}".`;
-}
+/* Stream a section into its folder body, showing text word-by-word as it arrives */
+async function generateSection(key, context={}){
+  const body = document.getElementById('body-'+key);
+  if(!body) return;
 
-async function generateSection(key){
+  body.innerHTML = '';
+  const textNode = document.createTextNode('');
+  const cursor = el('span',{class:'stream-cursor'});
+  cursor.textContent = '▋';
+  body.appendChild(textNode);
+  body.appendChild(cursor);
+
   try {
-    const text = await callClaude(MASTER_SPEC, sectionPrompt(key, state.brief));
-    state.sections[key] = text;
-    const body = document.getElementById('body-'+key);
-    body.textContent = text;
+    const fullText = await callClaudeStream(
+      MASTER_SPEC,
+      [{role:'user', content: sectionPrompt(key, state.brief, context)}],
+      (chunk) => { textNode.textContent += chunk; }
+    );
+    cursor.remove();
+    state.sections[key] = fullText;
     const tab = document.querySelector('#folder-'+key+' .status');
-    tab.innerHTML = 'done';
+    if(tab) tab.innerHTML = 'done';
     addFolderActions(key);
   } catch(e){
-    const body = document.getElementById('body-'+key);
+    cursor.remove();
     body.innerHTML = `<span class="error-note">Failed to generate — ${e.message}</span>`;
     const tab = document.querySelector('#folder-'+key+' .status');
-    tab.innerHTML = `<button onclick="retrySection('${key}')" style="background:none;border:none;color:#fff;text-decoration:underline;font-size:11px;">retry</button>`;
+    if(tab){
+      const retryBtn = el('button',{type:'button',style:'background:none;border:none;color:#fff;text-decoration:underline;font-size:11px;'});
+      retryBtn.textContent = 'retry';
+      retryBtn.onclick = ()=> retrySection(key);
+      tab.innerHTML = '';
+      tab.appendChild(retryBtn);
+    }
   }
 }
 
 async function retrySection(key){
+  const folder = document.getElementById('folder-'+key);
+  const existingActions = folder?.querySelector('.folder-actions');
+  if(existingActions) existingActions.remove();
   const tab = document.querySelector('#folder-'+key+' .status');
-  tab.innerHTML = '<span class="loading-pulse"></span> generating…';
-  await generateSection(key);
+  if(tab) tab.innerHTML = '<span class="loading-pulse"></span> generating…';
+  await generateSection(key, buildContextForSection(key));
   saveCurrentQuest();
 }
 
@@ -388,6 +519,7 @@ function addFolderActions(key){
   const folder = document.getElementById('folder-'+key);
   if(folder.querySelector('.folder-actions')) return;
   const actions = el('div',{class:'folder-actions'});
+
   const copyBtn = el('button',{type:'button'});
   copyBtn.textContent = 'Copy text';
   copyBtn.onclick = async ()=>{
@@ -395,8 +527,87 @@ function addFolderActions(key){
     copyBtn.textContent = 'Copied ✓';
     setTimeout(()=>copyBtn.textContent='Copy text', 1500);
   };
+
+  const refineBtn = el('button',{type:'button'});
+  refineBtn.textContent = 'Refine…';
+  refineBtn.onclick = ()=> toggleRefinePanel(key, folder, refineBtn);
+
   actions.appendChild(copyBtn);
+  actions.appendChild(refineBtn);
   folder.appendChild(actions);
+}
+
+function toggleRefinePanel(key, folder, triggerBtn){
+  const existing = folder.querySelector('.refine-panel');
+  if(existing){ existing.remove(); triggerBtn.textContent = 'Refine…'; return; }
+
+  triggerBtn.textContent = 'Cancel';
+
+  const panel = el('div',{class:'refine-panel'});
+  const input = el('textarea',{class:'refine-input', rows:'3',
+    placeholder:"Describe the change — e.g. 'Shorten the Hook and raise the stakes' or 'Simplify the Archives for a 9-year-old' or 'Add a materials list to the Quest Pack'…"});
+  const applyBtn = el('button',{class:'refine-apply-btn', type:'button'});
+  applyBtn.textContent = 'Apply Refinement';
+  applyBtn.onclick = ()=>{
+    const instructions = input.value.trim();
+    if(!instructions) return;
+    refineSection(key, instructions, folder, triggerBtn, panel);
+  };
+  panel.appendChild(input);
+  panel.appendChild(applyBtn);
+  folder.appendChild(panel);
+  input.focus();
+}
+
+/* Multi-turn refinement: passes the original prompt + response as conversation history,
+   then asks Claude to apply the Guide's specific instruction — streams the new version */
+async function refineSection(key, instructions, folder, triggerBtn, panel){
+  panel.remove();
+  triggerBtn.textContent = 'Refine…';
+
+  const body = document.getElementById('body-'+key);
+  const tab = document.querySelector('#folder-'+key+' .status');
+  if(tab) tab.innerHTML = '<span class="loading-pulse"></span> refining…';
+
+  const originalContent = state.sections[key] || '';
+  const originalPrompt = sectionPrompt(key, state.brief, buildContextForSection(key));
+
+  body.innerHTML = '';
+  const textNode = document.createTextNode('');
+  const cursor = el('span',{class:'stream-cursor'});
+  cursor.textContent = '▋';
+  body.appendChild(textNode);
+  body.appendChild(cursor);
+
+  /* Remove existing actions — they'll be re-added after the refined version lands */
+  const oldActions = folder.querySelector('.folder-actions');
+  if(oldActions) oldActions.remove();
+
+  try {
+    const fullText = await callClaudeStream(
+      MASTER_SPEC,
+      [
+        { role:'user', content: originalPrompt },
+        { role:'assistant', content: originalContent },
+        { role:'user', content: `Refine the section above with these changes: ${instructions}` },
+      ],
+      (chunk) => { textNode.textContent += chunk; }
+    );
+    cursor.remove();
+    state.sections[key] = fullText;
+    if(tab) tab.innerHTML = 'done';
+    addFolderActions(key);
+    saveCurrentQuest();
+  } catch(e){
+    cursor.remove();
+    /* Restore original on failure */
+    body.textContent = originalContent;
+    if(tab) tab.innerHTML = 'done';
+    const errSpan = el('span',{class:'error-note'});
+    errSpan.textContent = ` — Refinement failed: ${e.message}`;
+    body.appendChild(errSpan);
+    addFolderActions(key);
+  }
 }
 
 async function saveCurrentQuest(){
@@ -406,7 +617,7 @@ async function saveCurrentQuest(){
       brief: state.brief, world: state.world, level: state.level,
       coreSkill: state.coreSkill, langSkill: state.langSkill, sections: state.sections
     }));
-  } catch(e){ /* storage best-effort, don't block UI */ }
+  } catch(e){ /* storage best-effort */ }
 }
 
 async function renderSavedList(){
