@@ -159,6 +159,9 @@
       <label>Level</label>
       <div class="level-row" id="levelRow"></div>
 
+      <label>Difficulty</label>
+      <div class="level-row" id="difficultyRow"></div>
+
       <label for="coreSkillSelect">Core Skill</label>
       <select id="coreSkillSelect"></select>
 
@@ -208,6 +211,11 @@ const LEVELS = [
   {key:'Pathfinder', desc:'fully open'},
 ];
 
+const DIFFICULTIES = [
+  {key:'Easy', desc:'comfortable application'},
+  {key:'Hard', desc:'genuine stretch'},
+];
+
 const SCIENCE_SKILLS = [
   'Characteristics of living things','Plant structure and function','Basic food chains','Pollination and seed dispersal','Adaptations in animals and plants',
   'States of matter','Properties of materials','Physical changes','Mixtures',
@@ -236,13 +244,18 @@ const LANGUAGE_SKILLS = [
   'Narrative Elements','Discussion & Debate',
 ];
 
-const MASTER_SPEC = `You are the generation engine for "Risers' Quests" — a real program where children aged 8-14 ("Risers") complete short, hands-on projects ("Quests") at school, guided by an adult ("the Guide") — 3 Days for Wanderer, Explorer, and Pathfinder; 2 Weeks (6 Days) for Seeker. You generate one Quest at a time from a World, a Level, and a Core Skill, plus an optional Language Skill. Follow every rule below exactly.
+const MASTER_SPEC = `You are the generation engine for "Risers' Quests" — a real program where children aged 8-14 ("Risers") complete short, hands-on projects ("Quests") at school, guided by an adult ("the Guide") — 3 Days for Wanderer, Explorer, and Pathfinder; 2 Weeks (6 Days) for Seeker. You generate one Quest at a time from a World, a Level, a Difficulty, and a Core Skill, plus an optional Language Skill. Follow every rule below exactly.
 
 LEVELS (least to most self-directed): Seeker, Wanderer, Explorer, Pathfinder. The story is always equally high-stakes at every Level — only self-direction changes.
 - Seeker: explicit, step-by-step, written entirely at the Riser's own reading level. No Guide facilitation assumed.
 - Wanderer: clear steps with some open decisions.
 - Explorer: loose guidance/prompts; the Riser has to find their own path. The Core Skill content must genuinely stretch the Riser — include a sub-skill or harder application they have not yet mastered, never just an easier re-application of something already comfortable.
 - Pathfinder: the most fluid and open; minimal scaffolding.
+
+DIFFICULTY (independent of Level, chosen per Riser): Easy or Hard — this controls how hard the Core Skill content itself is, layered on top of whatever the Level above already requires (Explorer's stretch requirement still applies regardless of Difficulty).
+- Easy: a comfortable, already-practiced application of the Core Skill — appropriately challenging for the Riser, not a stretch.
+- Hard: a genuinely harder sub-skill or application of the Core Skill that this specific Riser has not yet mastered — never just a longer or faster version of the Easy content.
+This applies at every Level, including Seeker: a Hard Seeker Quest keeps Seeker's step-by-step, simplest-English, hands-on-first structure exactly as defined below — only the underlying Core Skill content gets harder.
 
 WORLDS: Fantasy (a world that doesn't exist; real science separates fact from fiction), Adventure (a real-world crisis at a scale the Riser can design a response for), Mystery (the scientific explanation behind a real event), Drama (scientific/philosophical thinking applied to debate, art, or performance).
 
@@ -284,7 +297,7 @@ LANGUAGE: never a standalone Quest target. By default it's woven organically int
 
 TONE: high-stakes and immersive at every Level. Write for a real child aged 8-14 — never patronizing, never cartoonish. Ground every Quest in something that could really be true, unless the World is Fantasy.`;
 
-let state = { world:null, level:null, coreSkill:null, subject:null, langSkill:'', brief:null, sections:{} };
+let state = { world:null, level:null, difficulty:'Easy', coreSkill:null, subject:null, langSkill:'', brief:null, sections:{} };
 
 /* Weekly Menu: batch-generate several Quests in one pass, grouped by age band.
    No fixed age-to-Level mapping yet — the Guide picks World/Level/Core Skill per slot. */
@@ -324,6 +337,17 @@ function renderLevelRow(){
     const btn = el('button',{class:'level-btn','aria-pressed': state.level===l.key,'type':'button'});
     btn.innerHTML = `<span>${l.key}</span><span class="desc">${l.desc}</span>`;
     btn.onclick = ()=>{ state.level=l.key; renderLevelRow(); updateHint(); };
+    row.appendChild(btn);
+  });
+}
+
+function renderDifficultyRow(){
+  const row = document.getElementById('difficultyRow');
+  row.innerHTML='';
+  DIFFICULTIES.forEach(d=>{
+    const btn = el('button',{class:'level-btn','aria-pressed': state.difficulty===d.key,'type':'button'});
+    btn.innerHTML = `<span>${d.key}</span><span class="desc">${d.desc}</span>`;
+    btn.onclick = ()=>{ state.difficulty=d.key; renderDifficultyRow(); };
     row.appendChild(btn);
   });
 }
@@ -437,7 +461,7 @@ function stripJsonFence(text){
 }
 
 function buildContextLine(){
-  return `World: ${state.world}\nLevel: ${state.level}\nCore Skill: ${state.coreSkill}\nSubject: ${state.subject}\nLanguage Skill: ${state.langSkill || 'none — integrate organically'}`;
+  return `World: ${state.world}\nLevel: ${state.level}\nDifficulty: ${state.difficulty}\nCore Skill: ${state.coreSkill}\nSubject: ${state.subject}\nLanguage Skill: ${state.langSkill || 'none — integrate organically'}`;
 }
 
 /* Build the cross-section context to pass into a given section's prompt */
@@ -724,7 +748,7 @@ async function saveCurrentQuest(){
   if(!state.brief) return;
   try {
     await window.storage.set('quest:'+state.brief.questId, JSON.stringify({
-      brief: state.brief, world: state.world, level: state.level,
+      brief: state.brief, world: state.world, level: state.level, difficulty: state.difficulty,
       coreSkill: state.coreSkill, langSkill: state.langSkill, sections: state.sections
     }));
   } catch(e){ /* storage best-effort */ }
@@ -757,7 +781,7 @@ async function renderSavedList(){
 }
 
 function reopenQuest(data){
-  state = { world:data.world, level:data.level, coreSkill:data.coreSkill, subject:null,
+  state = { world:data.world, level:data.level, difficulty:data.difficulty || 'Easy', coreSkill:data.coreSkill, subject:null,
             langSkill:data.langSkill, brief:data.brief, sections:data.sections };
   const caseArea = document.getElementById('caseArea');
   caseArea.innerHTML = '';
@@ -795,7 +819,7 @@ function rebuildMenuSlots(){
   menuConfig.forEach((band, bandIdx)=>{
     for(let i=0;i<band.count;i++){
       const existing = menuSlots.find(s=> s.bandIdx===bandIdx && s.slotIdx===i);
-      next.push(existing || { bandIdx, slotIdx:i, bandLabel: band.label, world:null, level:null, coreSkill:null, subject:null, langSkill:'' });
+      next.push(existing || { bandIdx, slotIdx:i, bandLabel: band.label, world:null, level:null, difficulty:'Easy', coreSkill:null, subject:null, langSkill:'' });
     }
   });
   menuSlots = next;
@@ -856,6 +880,15 @@ function buildMenuSlotCard(slot){
   });
   card.appendChild(levelRow);
 
+  const difficultyRow = el('div',{class:'level-row'});
+  DIFFICULTIES.forEach(d=>{
+    const btn = el('button',{class:'level-btn','aria-pressed': slot.difficulty===d.key, type:'button'});
+    btn.innerHTML = `<span>${d.key}</span><span class="desc">${d.desc}</span>`;
+    btn.onclick = ()=>{ slot.difficulty = d.key; renderMenuView(); };
+    difficultyRow.appendChild(btn);
+  });
+  card.appendChild(difficultyRow);
+
   const coreSel = el('select');
   coreSel.innerHTML = '<option value="">— choose a Core Skill —</option>';
   const mathGroup = el('optgroup',{label:'Math'});
@@ -886,7 +919,7 @@ function renderMenuRoster(){
   menuResults.forEach(r=>{
     const row = el('div',{class:'saved-item'});
     const left = el('span');
-    left.innerHTML = `<b>${r.brief.questId}</b> · ${r.bandLabel} · ${r.world}/${r.level} · ${r.coreSkill} — ${r.brief.missionTitle}`;
+    left.innerHTML = `<b>${r.brief.questId}</b> · ${r.bandLabel} · ${r.world}/${r.level}/${r.difficulty} · ${r.coreSkill} — ${r.brief.missionTitle}`;
     const btn = el('button',{type:'button'});
     btn.textContent = 'View';
     btn.disabled = menuGenerating;
@@ -918,12 +951,13 @@ async function generateMenu(){
     statusEl.textContent = `Generating Quest ${i+1} of ${slots.length} — ${slot.bandLabel}…`;
     state.world = slot.world;
     state.level = slot.level;
+    state.difficulty = slot.difficulty || 'Easy';
     state.coreSkill = slot.coreSkill;
     state.subject = slot.subject;
     state.langSkill = slot.langSkill || '';
     await generateAll();
     menuResults.push({
-      bandLabel: slot.bandLabel, world: state.world, level: state.level,
+      bandLabel: slot.bandLabel, world: state.world, level: state.level, difficulty: state.difficulty,
       coreSkill: state.coreSkill, langSkill: state.langSkill,
       brief: state.brief, sections: {...state.sections},
     });
@@ -942,6 +976,7 @@ document.getElementById('modeSingleBtn').onclick = switchToSingleView;
 document.getElementById('modeMenuBtn').onclick = switchToMenuView;
 renderWorldGrid();
 renderLevelRow();
+renderDifficultyRow();
 renderCoreSkillSelect();
 renderLangSelect();
 renderSavedList();
