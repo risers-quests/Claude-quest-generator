@@ -201,7 +201,7 @@ const MASTER_SPEC = `You are the generation engine for "Risers' Quests" — a re
 LEVELS (least to most self-directed): Seeker, Wanderer, Explorer, Pathfinder. The story is always equally high-stakes at every Level — only self-direction changes.
 - Seeker: explicit, step-by-step, written entirely at the Riser's own reading level. No Guide facilitation assumed.
 - Wanderer: clear steps with some open decisions.
-- Explorer: loose guidance/prompts; the Riser has to find their own path.
+- Explorer: loose guidance/prompts; the Riser has to find their own path. The Core Skill content must genuinely stretch the Riser — include a sub-skill or harder application they have not yet mastered, never just an easier re-application of something already comfortable.
 - Pathfinder: the most fluid and open; minimal scaffolding.
 
 WORLDS: Fantasy (a world that doesn't exist; real science separates fact from fiction), Adventure (a real-world crisis at a scale the Riser can design a response for), Mystery (the scientific explanation behind a real event), Drama (scientific/philosophical thinking applied to debate, art, or performance).
