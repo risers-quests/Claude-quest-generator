@@ -72,6 +72,7 @@
   .seal .title{ font-family:'Fraunces', serif; font-weight:700; font-size:16px; }
 
   .folder{ background:var(--card); border:1px solid var(--line); margin-bottom:18px; position:relative; }
+  .cut-line{ border-top:1px dashed var(--line); text-align:center; font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.03em; opacity:0.6; padding-top:6px; margin:0 12px; }
   .folder-tab{
     display:flex; justify-content:space-between; align-items:center; gap:10px;
     padding:10px 16px; background:var(--ink); color:var(--paper); cursor:pointer;
@@ -159,8 +160,10 @@
       <label>Level</label>
       <div class="level-row" id="levelRow"></div>
 
-      <label>Difficulty</label>
-      <div class="level-row" id="difficultyRow"></div>
+      <div id="difficultyGroup">
+        <label>Difficulty</label>
+        <div class="level-row" id="difficultyRow"></div>
+      </div>
 
       <label for="coreSkillSelect">Core Skill</label>
       <select id="coreSkillSelect"></select>
@@ -244,7 +247,7 @@ const LANGUAGE_SKILLS = [
   'Narrative Elements','Discussion & Debate',
 ];
 
-const MASTER_SPEC = `You are the generation engine for "Risers' Quests" — a real program where children aged 8-14 ("Risers") complete short, hands-on projects ("Quests") at school, guided by an adult ("the Guide") — 3 Days for Wanderer, Explorer, and Pathfinder; 2 Weeks (6 Days) for Seeker. You generate one Quest at a time from a World, a Level, a Difficulty, and a Core Skill, plus an optional Language Skill. Follow every rule below exactly.
+const MASTER_SPEC = `You are the generation engine for "Risers' Quests" — a real program where children aged 8-14 ("Risers") complete short, hands-on projects ("Quests") at school, guided by an adult ("the Guide") — 3 Days for Wanderer, Explorer, and Pathfinder; 2 Weeks (6 Days) for Seeker. You generate one Quest at a time from a World, a Level, and a Core Skill, plus an optional Language Skill and — for Seeker only — a Difficulty. Follow every rule below exactly.
 
 LEVELS (least to most self-directed): Seeker, Wanderer, Explorer, Pathfinder. The story is always equally high-stakes at every Level — only self-direction changes.
 - Seeker: explicit, step-by-step, written entirely at the Riser's own reading level. No Guide facilitation assumed.
@@ -252,26 +255,27 @@ LEVELS (least to most self-directed): Seeker, Wanderer, Explorer, Pathfinder. Th
 - Explorer: loose guidance/prompts; the Riser has to find their own path. The Core Skill content must genuinely stretch the Riser — include a sub-skill or harder application they have not yet mastered, never just an easier re-application of something already comfortable.
 - Pathfinder: the most fluid and open; minimal scaffolding.
 
-DIFFICULTY (independent of Level, chosen per Riser): Easy or Hard — this controls how hard the Core Skill content itself is, layered on top of whatever the Level above already requires (Explorer's stretch requirement still applies regardless of Difficulty).
+DIFFICULTY (Seeker ONLY, chosen per Riser): Easy or Hard — this controls how hard the Core Skill content itself is, on top of Seeker's own step-by-step structure. For every other Level (Wanderer, Explorer, Pathfinder), ignore Difficulty entirely — the Level above already calibrates how hard the Quest is, and a Difficulty value may still be present in the request but must not change anything about the output.
 - Easy: a comfortable, already-practiced application of the Core Skill — appropriately challenging for the Riser, not a stretch.
 - Hard: a genuinely harder sub-skill or application of the Core Skill that this specific Riser has not yet mastered — never just a longer or faster version of the Easy content.
-This applies at every Level, including Seeker: a Hard Seeker Quest keeps Seeker's step-by-step, simplest-English, hands-on-first structure exactly as defined below — only the underlying Core Skill content gets harder.
+A Hard Seeker Quest keeps Seeker's step-by-step, simplest-English, hands-on-first structure exactly as defined below — only the underlying Core Skill content gets harder.
 
 WORLDS: Fantasy (a world that doesn't exist; real science separates fact from fiction), Adventure (a real-world crisis at a scale the Riser can design a response for), Mystery (the scientific explanation behind a real event), Drama (scientific/philosophical thinking applied to debate, art, or performance).
 
-FIVE COMPONENTS (Pre-Quest Check is skipped for Seeker; Links is conditional):
+COMPONENTS (Pre-Quest Check is skipped for Seeker; Links and Materials to Bring are both conditional):
 1. Hook Card — punchy, escalating, high-stakes scene-setting, never a flat paragraph, ending on a short imperative. Footer shows Core Skill and Level ONLY — never Subject.
 2. Pre-Quest Check — ONLY for Wanderer, Explorer, and Pathfinder; Seeker skips this component entirely. 5 self-administered questions: one concept multiple-choice, then four applied short-answer problems with working space, increasing in difficulty. Every question must have a single, objective, definitively correct answer (a calculation, a fact, a clear right answer) — never a prediction, opinion, or open-interpretation question, since the Riser self-scores by checking their own answer against the underlying math/fact. The final question is quietly isomorphic to the Quest's real mechanic without revealing the mission. No answer key. Close with tiered self-scoring guidance naming the SPECIFIC questions that are the real gating signal.
 3. Archives — Riser-facing reading for Stage 1, in two parts. Open with one line telling the Riser what the two parts are and why, before they start reading (e.g. naming that Part 1 is the story/history and Part 2 is the science they'll need) — never leave the Riser to guess why the reading is split. Blends a real historical/factual narrative anchor, genuinely interesting tangential facts, and the core content knowledge needed, narratively. Vocabulary scales with Level: simplest words for Wanderer, moderately bigger words intentionally for Explorer and Pathfinder — but sentence structure stays clear and simple at every Level, including inside the Quest Pack. If a procedural gap is intentional (Links will be provided), stop short of the technique and tease that more is needed. If no Links will be provided, the Archives MUST be fully self-contained. Ends by handing over the mission-specific data/problem.
 4. Links — ONLY if Level is exactly "Explorer" AND a genuine procedural gap exists. Real, well-known, stable educational websites only (e.g. mathsisfun.com, BBC Bitesize, NASA, Khan Academy) — never invent obscure or fictional URLs. Written as a short, ready-to-forward message (a one-line intro plus the links) that the Guide manually forwards to the Riser's email — never a long document. State explicitly this is sent only after the Archives are read, never before.
 5. Quest Pack — the full Quest, exactly this six-stage skeleton. Wanderer, Explorer, and Pathfinder use the STANDARD form (always 3 Days). Seeker uses the SEEKER form (always 2 Weeks, 6 Days). Prescriptiveness must scale exactly to Level as defined above.
+6. Materials to Bring — ONLY if Level is "Wanderer" or "Explorer" AND the Quest is physically hands-on. A short, standalone list — never folded into the Quest Pack's own text — naming exactly what the Riser needs to bring from home for Day 2's hands-on work. The Guide hands this to the Riser at the end of Day 1, on its own, so the Riser can cut it out and take it home that same day; it must stand alone with nothing else printed on it. List only concrete items, no instructions, explanation, or narrative. If the Quest is calculation/investigation-only with nothing to bring, this component does not exist.
 
    STANDARD (Wanderer / Explorer / Pathfinder):
    Day 1: Stage 1 "Deep Dive" (read the Archives) → Stage 2 "Brain Dump" — Riser picks exactly one format: Mind Map (a free-form radial diagram branching out from one central topic) or KWL Chart (K: What I Know, W: What I Want to Find Out — both filled in now; L: What I Learned stays blank until after Stage 4, then gets filled in as part of the Day 3 wrap-up).
    Day 2: Stage 3 "Blueprint" — Part A: commit to ONE prediction BEFORE investigating (no data or results yet). Part B: design a recording tool BEFORE Stage 4, choosing exactly one of two types: Table (rows + columns) or Tracker (checklist style) — design only, leave it empty. Stage 3 must contain zero actual data or results. Then Stage 4, named "Experiment Zero" if the Core Skill is Science or "Data Analysis" if the Core Skill is Math — do the real work step by step, filling the Stage 3 recording tool with actual results (zero new predictions here), reach a conclusion, then explicitly compare it back to the Stage 3 prediction. Stage 3 and Stage 4 must read as clearly distinct phases — planning only, then execution only.
    Day 3: Stage 5 "What If" (a new, un-researchable twist testing transfer, not lookup — no single right answer, but reasoning must be built on the evidence) → Stage 6 "Leave a Door Open" (the Riser writes ONE genuinely new question, not a summary).
    Close with "Present Your Case" — Day 3 presentation to the group and Guide, using this fixed four-part worksheet every time, never inventing different prompts: 01 Narration (presenter answers "What was this quest about?", "What did you find or conclude?", and "What question are you walking away with?" — the last one restates the Stage 6 question, not a new one); 02 Display (show the Brain Dump, Blueprint, recording tool, and output — no explanation needed, let the work speak); 03 Self Review (presenter answers "One thing that worked" and "One thing I would do differently"); 04 Peer Review (a Fellow Riser, Guide-facilitated, live, answers "I appreciate…", "I observed…", "My question is…").
-   Include a materials list ONLY if the Quest is physically hands-on. Omit entirely if calculation/investigation-only.
+   Pathfinder only: include a materials list inline here, ONLY if the Quest is physically hands-on; omit entirely if calculation/investigation-only. Wanderer and Explorer never include a materials list here — they use the separate Materials to Bring component instead.
 
    SEEKER (hands-on first, simplest possible English, no Guide facilitation assumed):
    LANGUAGE: every instruction is one short sentence, one action per step, common everyday words only, written at a 1st-grade reading level. Never require the Riser to infer an unstated step — the Riser must be able to complete every Day without asking a question.
@@ -291,7 +295,7 @@ FIVE COMPONENTS (Pre-Quest Check is skipped for Seeker; Links is conditional):
 PROMPTS & TRANSITIONS (every Level): any sentence that tells the Riser what to do, answer, or write — Pre-Quest Check questions, every Stage prompt, every worksheet prompt, every transition cue — must be a plain, literal sentence in the simplest words that fit the Level. No metaphor, no figurative language, no abstract phrasing (e.g. never "threads that pull you in" — say plainly what to notice or do). Reserve vivid, immersive language for the Hook Card and the Archives' narrative passages only; the moment a sentence is an instruction rather than a story, it must say so directly.
 Every Stage must end with its own clearly set-off transition line — visually its own short break, never buried in the last paragraph — naming the exact next worksheet by name and the next physical action, in calm, simple, plain language. No commands or shouting (never "STOP"); just a quiet, direct statement of what comes next — e.g. "Next: open your Blueprint sheet. Write your prediction in Part A." Never a vague "move on" that assumes the Riser will infer the next step. This applies at every Stage-to-Stage handoff, in both the STANDARD and SEEKER forms.
 
-BRANDING: brand name is "Risers' Quests". Quest ID is World-letter + number, e.g. "M-07". Use the field label "Level", never "Difficulty". Never print "Subjects," "Format," "Track," or "Academic" anywhere.
+BRANDING: brand name is "Risers' Quests". Quest ID is World-letter + number, e.g. "M-07". Level and Difficulty are separate fields — never use one label for the other. Never print "Subjects," "Format," "Track," or "Academic" anywhere.
 
 LANGUAGE: never a standalone Quest target. By default it's woven organically into existing writing tasks. If a specific Language Skill is given, deliberately integrate that exact sub-skill into the relevant stage(s) instead.
 
@@ -343,9 +347,13 @@ function renderLevelRow(){
   LEVELS.forEach(l=>{
     const btn = el('button',{class:'level-btn','aria-pressed': state.level===l.key,'type':'button'});
     btn.innerHTML = `<span>${l.key}</span><span class="desc">${l.desc}</span>`;
-    btn.onclick = ()=>{ state.level=l.key; renderLevelRow(); updateHint(); };
+    btn.onclick = ()=>{ state.level=l.key; if(state.level!=='Seeker') state.difficulty='Easy'; renderLevelRow(); updateDifficultyVisibility(); updateHint(); };
     row.appendChild(btn);
   });
+}
+
+function updateDifficultyVisibility(){
+  document.getElementById('difficultyGroup').style.display = state.level==='Seeker' ? '' : 'none';
 }
 
 function renderDifficultyRow(){
@@ -456,11 +464,12 @@ function buildContextForSection(key){
   if(key !== 'hook' && state.sections.hook) ctx.hook = state.sections.hook;
   if((key === 'questPack' || key === 'questPackWeek2') && state.sections.archives) ctx.archives = state.sections.archives;
   if(key === 'questPackWeek2' && state.sections.questPack) ctx.questPackWeek1 = state.sections.questPack;
+  if(key === 'materials' && state.sections.questPack) ctx.questPack = state.sections.questPack;
   return ctx;
 }
 
-const SECTION_ORDER = ['hook','preQuestCheck','archives','links','questPack'];
-const SECTION_LABELS = { hook:'Hook Card', preQuestCheck:'Pre-Quest Check', archives:'Archives', links:'Links', questPack:'Quest Pack', questPackWeek2:'Quest Pack — Week 2' };
+const SECTION_ORDER = ['hook','preQuestCheck','archives','links','questPack','materials'];
+const SECTION_LABELS = { hook:'Hook Card', preQuestCheck:'Pre-Quest Check', archives:'Archives', links:'Links', questPack:'Quest Pack', questPackWeek2:'Quest Pack — Week 2', materials:'Materials to Bring — Day 2 Prep' };
 
 function getSectionLabel(key){
   if(key === 'questPack' && state.level === 'Seeker') return 'Quest Pack — Week 1';
@@ -480,6 +489,9 @@ function sectionPrompt(key, brief, context={}){
   const week1Block = context.questPackWeek1
     ? `\n\n--- QUEST PACK WEEK 1 (already written — Week 2 must reference this Riser's actual Week 1 drawing/prediction and stay consistent) ---\n${context.questPackWeek1}\n---`
     : '';
+  const questPackBlock = context.questPack
+    ? `\n\n--- QUEST PACK (already written — the materials list must match exactly what Day 2's actual activity needs) ---\n${context.questPack}\n---`
+    : '';
 
   if(key==='hook') return `${ctx}\n\nWrite the Hook Card now, following the Hook Card rules exactly.`;
   if(key==='preQuestCheck') return `${ctx}\n\nWrite the Pre-Quest Check now, following the rules exactly. Do not reveal the mission's specific scenario, only test the prerequisite skill.`;
@@ -490,6 +502,7 @@ function sectionPrompt(key, brief, context={}){
     return `${ctx}${hookBlock}${archivesBlock}\n\nWrite the full Quest Pack now, following the six-stage skeleton exactly, calibrated to Level "${state.level}".${seekerNote}`;
   }
   if(key==='questPackWeek2') return `${ctx}${hookBlock}${archivesBlock}${week1Block}\n\nWrite Week 2 (Days 4-6) of the SEEKER Quest Pack now, following the rules exactly.`;
+  if(key==='materials') return `${ctx}${questPackBlock}\n\nWrite the Materials to Bring component now, following the rules exactly. This will be printed and handed to the Riser on its own at the end of Day 1, for them to cut out and take home — list ONLY the concrete items needed for Day 2, nothing else: no instructions, no explanation, no narrative.`;
 }
 
 async function generateAll(){
@@ -507,10 +520,11 @@ async function generateAll(){
   try {
     const briefRaw = await callClaude(
       MASTER_SPEC,
-      `Generate the foundational Mission Brief for a new Quest.\n${buildContextLine()}\n\nRespond with this exact JSON shape: {"questId": string (World-letter + 2-digit number, e.g. "M-07"), "missionTitle": string, "stage4Name": string ("Experiment Zero" or "Data Analysis" per the rules), "requiresLinks": boolean (true only if Level is exactly "Explorer" AND a genuine procedural gap is needed), "linkGapDescription": string or null}`
+      `Generate the foundational Mission Brief for a new Quest.\n${buildContextLine()}\n\nRespond with this exact JSON shape: {"questId": string (World-letter + 2-digit number, e.g. "M-07"), "missionTitle": string, "stage4Name": string ("Experiment Zero" or "Data Analysis" per the rules), "requiresLinks": boolean (true only if Level is exactly "Explorer" AND a genuine procedural gap is needed), "linkGapDescription": string or null, "requiresMaterials": boolean (true only if Level is "Wanderer" or "Explorer" AND the Quest is physically hands-on, meaning the Riser needs to bring materials from home for Day 2)}`
     );
     brief = JSON.parse(stripJsonFence(briefRaw));
     if(state.level !== 'Explorer') brief.requiresLinks = false;
+    if(state.level !== 'Wanderer' && state.level !== 'Explorer') brief.requiresMaterials = false;
     state.brief = brief;
   } catch(e){
     sealRow.innerHTML = `<p class="error-note">Could not draft the mission brief — ${e.message}. <button onclick="generateAll()">Retry</button></p>`;
@@ -521,17 +535,20 @@ async function generateAll(){
   sealRow.innerHTML = `<div class="seal"><span class="qid">${brief.questId}</span><span class="title">${brief.missionTitle}</span></div>`;
 
   const sectionsToBuild = SECTION_ORDER.filter(s =>
-    (s!=='links' || brief.requiresLinks) && (s!=='preQuestCheck' || state.level!=='Seeker')
+    (s!=='links' || brief.requiresLinks) &&
+    (s!=='materials' || brief.requiresMaterials) &&
+    (s!=='preQuestCheck' || state.level!=='Seeker')
   );
   sectionsToBuild.forEach(key=>{
     caseArea.appendChild(buildFolderSkeleton(key));
   });
 
   /*
-   * Three-phase generation for narrative coherence:
+   * Staged generation for narrative coherence:
    *   Phase 1 (parallel): Hook + Pre-Quest Check — no cross-dependencies (Pre-Quest Check skipped for Seeker)
    *   Phase 2 (sequential): Archives — reads Hook so setting/characters stay consistent
    *   Phase 3 (parallel): Quest Pack + Links — Quest Pack reads both Hook and Archives
+   *   Phase 4 (sequential): Materials to Bring — reads the finished Quest Pack so the list matches Day 2 exactly
    */
   const phase1 = [ generateSection('hook', {}) ];
   if(state.level !== 'Seeker') phase1.push(generateSection('preQuestCheck', {}));
@@ -545,6 +562,10 @@ async function generateAll(){
   }) ];
   if(brief.requiresLinks) phase3.push(generateSection('links', { hook: state.sections.hook }));
   await Promise.allSettled(phase3);
+
+  if(brief.requiresMaterials && state.sections.questPack){
+    await generateSection('materials', { questPack: state.sections.questPack });
+  }
 
   if(state.level === 'Seeker' && state.sections.questPack) renderWeek2Gate();
 
@@ -575,7 +596,12 @@ function renderWeek2Gate(){
 }
 
 function buildFolderSkeleton(key){
-  const folder = el('div',{class:'folder', id:'folder-'+key});
+  const folder = el('div',{class: key==='materials' ? 'folder cut-card' : 'folder', id:'folder-'+key});
+  if(key==='materials'){
+    const cutLine = el('div',{class:'cut-line'});
+    cutLine.textContent = '✂ Cut along this line — hand to the Riser at the end of Day 1';
+    folder.appendChild(cutLine);
+  }
   const tab = el('div',{class:'folder-tab'});
   tab.innerHTML = `<h3>${getSectionLabel(key)}</h3><span class="status mono"><span class="loading-pulse"></span> generating…</span>`;
   tab.onclick = ()=>{
@@ -769,6 +795,8 @@ async function renderSavedList(){
 function reopenQuest(data){
   state = { world:data.world, level:data.level, difficulty:data.difficulty || 'Easy', coreSkill:data.coreSkill, subject:null,
             langSkill:data.langSkill, brief:data.brief, sections:data.sections };
+  renderLevelRow();
+  updateDifficultyVisibility();
   const caseArea = document.getElementById('caseArea');
   caseArea.innerHTML = '';
   const sealRow = el('div');
@@ -861,19 +889,21 @@ function buildMenuSlotCard(slot){
   LEVELS.forEach(l=>{
     const btn = el('button',{class:'level-btn','aria-pressed': slot.level===l.key, type:'button'});
     btn.innerHTML = `<span>${l.key}</span><span class="desc">${l.desc}</span>`;
-    btn.onclick = ()=>{ slot.level = l.key; renderMenuView(); };
+    btn.onclick = ()=>{ slot.level = l.key; if(slot.level!=='Seeker') slot.difficulty='Easy'; renderMenuView(); };
     levelRow.appendChild(btn);
   });
   card.appendChild(levelRow);
 
-  const difficultyRow = el('div',{class:'level-row'});
-  DIFFICULTIES.forEach(d=>{
-    const btn = el('button',{class:'level-btn','aria-pressed': slot.difficulty===d.key, type:'button'});
-    btn.innerHTML = `<span>${d.key}</span><span class="desc">${d.desc}</span>`;
-    btn.onclick = ()=>{ slot.difficulty = d.key; renderMenuView(); };
-    difficultyRow.appendChild(btn);
-  });
-  card.appendChild(difficultyRow);
+  if(slot.level === 'Seeker'){
+    const difficultyRow = el('div',{class:'level-row'});
+    DIFFICULTIES.forEach(d=>{
+      const btn = el('button',{class:'level-btn','aria-pressed': slot.difficulty===d.key, type:'button'});
+      btn.innerHTML = `<span>${d.key}</span><span class="desc">${d.desc}</span>`;
+      btn.onclick = ()=>{ slot.difficulty = d.key; renderMenuView(); };
+      difficultyRow.appendChild(btn);
+    });
+    card.appendChild(difficultyRow);
+  }
 
   const coreSel = el('select');
   coreSel.innerHTML = '<option value="">— choose a Core Skill —</option>';
@@ -963,6 +993,7 @@ document.getElementById('modeMenuBtn').onclick = switchToMenuView;
 renderWorldGrid();
 renderLevelRow();
 renderDifficultyRow();
+updateDifficultyVisibility();
 renderCoreSkillSelect();
 renderLangSelect();
 renderSavedList();
