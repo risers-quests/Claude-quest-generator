@@ -310,6 +310,13 @@ let menuSlots = [];
 let menuResults = [];
 let menuGenerating = false;
 
+/* Persists Archived Quests in this browser only (no backend) */
+const storage = {
+  async set(key, value){ localStorage.setItem(key, value); },
+  async list(prefix){ return { keys: Object.keys(localStorage).filter(k => k.startsWith(prefix)) }; },
+  async get(key){ return { value: localStorage.getItem(key) }; },
+};
+
 function el(tag, attrs={}, children=[]){
   const e = document.createElement(tag);
   Object.entries(attrs).forEach(([k,v])=>{
@@ -382,49 +389,28 @@ function updateHint(){
     : 'Pick a World, a Level, and a Core Skill.';
 }
 
-/* Non-streaming call for JSON brief — uses prompt caching on MASTER_SPEC */
+/* Non-streaming call for JSON brief — proxied through /api/claude so the Anthropic
+   API key stays server-side and is never exposed to the browser. */
 async function callClaude(system, user){
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('/api/claude', {
     method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'anthropic-version':'2023-06-01',
-      'anthropic-beta':'prompt-caching-2024-07-31',
-    },
-    body: JSON.stringify({
-      model:'claude-sonnet-4-6',
-      max_tokens:500,
-      system:[
-        { type:'text', text:system, cache_control:{ type:'ephemeral' } },
-        { type:'text', text:'\n\nRespond with ONLY valid JSON. No preamble, no markdown fences, no commentary.' }
-      ],
-      messages:[{role:'user', content:user}]
-    })
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({ system, user })
   });
   if(!res.ok){
     const errText = await res.text().catch(()=>'');
     throw new Error('API error ('+res.status+')' + (errText ? ': '+errText.slice(0,200) : ''));
   }
   const data = await res.json();
-  return data.content.map(b=>b.text||'').join('\n');
+  return data.text;
 }
 
-/* Streaming call — MASTER_SPEC cached, text delivered chunk-by-chunk via onChunk(text) */
+/* Streaming call, proxied through /api/claude-stream — text delivered chunk-by-chunk via onChunk(text) */
 async function callClaudeStream(system, messages, onChunk){
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('/api/claude-stream', {
     method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'anthropic-version':'2023-06-01',
-      'anthropic-beta':'prompt-caching-2024-07-31',
-    },
-    body: JSON.stringify({
-      model:'claude-sonnet-4-6',
-      max_tokens:2000,
-      stream:true,
-      system:[{ type:'text', text:system, cache_control:{ type:'ephemeral' } }],
-      messages
-    })
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({ system, messages })
   });
   if(!res.ok){
     const errText = await res.text().catch(()=>'');
@@ -747,7 +733,7 @@ async function refineSection(key, instructions, folder, triggerBtn, panel){
 async function saveCurrentQuest(){
   if(!state.brief) return;
   try {
-    await window.storage.set('quest:'+state.brief.questId, JSON.stringify({
+    await storage.set('quest:'+state.brief.questId, JSON.stringify({
       brief: state.brief, world: state.world, level: state.level, difficulty: state.difficulty,
       coreSkill: state.coreSkill, langSkill: state.langSkill, sections: state.sections
     }));
@@ -757,13 +743,13 @@ async function saveCurrentQuest(){
 async function renderSavedList(){
   const listEl = document.getElementById('savedList');
   try {
-    const res = await window.storage.list('quest:');
+    const res = await storage.list('quest:');
     const keys = (res && res.keys) || [];
     if(keys.length===0){ listEl.innerHTML = '<p class="empty-note">None generated yet.</p>'; return; }
     listEl.innerHTML = '';
     for(const k of keys){
       try {
-        const rec = await window.storage.get(k);
+        const rec = await storage.get(k);
         const data = JSON.parse(rec.value);
         const row = el('div',{class:'saved-item'});
         const left = el('span');
