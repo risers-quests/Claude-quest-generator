@@ -109,6 +109,29 @@
 
   /* Seeker Week 2 gate */
   .week2-gate{ padding:10px 20px 16px; border-top:1px solid var(--line-soft); }
+
+  /* Mode tabs */
+  .mode-tabs{ display:flex; gap:8px; margin-bottom:20px; }
+  .mode-tab{ border:1px solid var(--line); background:#fff; padding:9px 18px; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.05em; text-transform:uppercase; }
+  .mode-tab[aria-pressed="true"]{ border-color:var(--ink); background:var(--ink); color:var(--paper); }
+
+  /* Weekly menu */
+  .menu-view{ background:var(--card); border:1px solid var(--line); padding:22px; }
+  .menu-band{ border-top:1px dashed var(--line); padding-top:18px; margin-top:18px; }
+  .menu-band:first-child{ border-top:none; padding-top:0; margin-top:0; }
+  .menu-band-header{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .menu-band-header h3{ font-size:17px; margin:0; }
+  .menu-count-label{ display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.05em; text-transform:uppercase; opacity:0.75; margin:0; }
+  .menu-count-input{ width:54px; padding:6px 8px; font-family:'IBM Plex Mono', monospace; font-size:13px; border:1px solid var(--line); background:#fff; color:var(--ink); }
+  .menu-slots{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:14px; }
+  .menu-slot-card{ border:1px solid var(--line); background:#fff; padding:14px; }
+  .menu-slot-label{ margin:0 0 10px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; opacity:0.7; }
+  .menu-mini-grid{ margin-bottom:10px; }
+  .menu-slot-card select{ margin-bottom:8px; font-size:13px; padding:8px 10px; }
+  .menu-generate-btn{ width:100%; margin-top:22px; padding:14px; background:var(--stamp); color:#fff; border:none; font-size:14px; letter-spacing:0.08em; text-transform:uppercase; font-weight:600; }
+  .menu-generate-btn:disabled{ background:#B79; opacity:0.5; cursor:not-allowed; }
+  .menu-status{ font-size:12px; opacity:0.7; margin-top:10px; font-family:'IBM Plex Mono', monospace; }
+  .menu-roster{ margin-top:18px; border-top:1px dashed var(--line); padding-top:14px; }
 </style>
 </head>
 <body>
@@ -119,7 +142,12 @@
     <div class="tag">Generator · Guide Use Only</div>
   </div>
 
-  <div class="layout">
+  <div class="mode-tabs">
+    <button class="mode-tab" id="modeSingleBtn" type="button" aria-pressed="true">Single Quest</button>
+    <button class="mode-tab" id="modeMenuBtn" type="button" aria-pressed="false">This Week's Menu</button>
+  </div>
+
+  <div class="layout" id="singleView">
 
     <div class="intake">
       <p class="eyebrow">Request Form</p>
@@ -150,6 +178,18 @@
       <div class="placeholder">No active case. Fill out the request form and generate a Quest to begin.</div>
     </div>
 
+  </div>
+
+  <div class="menu-view" id="menuView" style="display:none;">
+    <p class="eyebrow">Weekly Batch</p>
+    <h2>This Week's Menu</h2>
+    <p class="hint">Set how many Quests each age band needs this week, configure each one, then generate the whole menu in one pass.</p>
+
+    <div id="menuBands"></div>
+
+    <button class="menu-generate-btn" id="generateMenuBtn" type="button">Generate This Week's Menu</button>
+    <p class="menu-status" id="menuStatus"></p>
+    <div class="menu-roster" id="menuRoster"></div>
   </div>
 </div>
 
@@ -245,6 +285,17 @@ LANGUAGE: never a standalone Quest target. By default it's woven organically int
 TONE: high-stakes and immersive at every Level. Write for a real child aged 8-14 — never patronizing, never cartoonish. Ground every Quest in something that could really be true, unless the World is Fantasy.`;
 
 let state = { world:null, level:null, coreSkill:null, subject:null, langSkill:'', brief:null, sections:{} };
+
+/* Weekly Menu: batch-generate several Quests in one pass, grouped by age band.
+   No fixed age-to-Level mapping yet — the Guide picks World/Level/Core Skill per slot. */
+let menuConfig = [
+  { label: 'Ages 8–9', count: 2 },
+  { label: 'Ages 10–11', count: 3 },
+  { label: 'Ages 12–13', count: 2 },
+];
+let menuSlots = [];
+let menuResults = [];
+let menuGenerating = false;
 
 function el(tag, attrs={}, children=[]){
   const e = document.createElement(tag);
@@ -723,12 +774,179 @@ function reopenQuest(data){
   if(state.level === 'Seeker' && state.sections.questPack) renderWeek2Gate();
 }
 
+function switchToSingleView(){
+  document.getElementById('singleView').style.display = '';
+  document.getElementById('menuView').style.display = 'none';
+  document.getElementById('modeSingleBtn').setAttribute('aria-pressed','true');
+  document.getElementById('modeMenuBtn').setAttribute('aria-pressed','false');
+}
+
+function switchToMenuView(){
+  document.getElementById('singleView').style.display = 'none';
+  document.getElementById('menuView').style.display = '';
+  document.getElementById('modeSingleBtn').setAttribute('aria-pressed','false');
+  document.getElementById('modeMenuBtn').setAttribute('aria-pressed','true');
+}
+
+/* Keep menuSlots in sync with each band's configured count, preserving any
+   choices already made for slots that still exist. */
+function rebuildMenuSlots(){
+  const next = [];
+  menuConfig.forEach((band, bandIdx)=>{
+    for(let i=0;i<band.count;i++){
+      const existing = menuSlots.find(s=> s.bandIdx===bandIdx && s.slotIdx===i);
+      next.push(existing || { bandIdx, slotIdx:i, bandLabel: band.label, world:null, level:null, coreSkill:null, subject:null, langSkill:'' });
+    }
+  });
+  menuSlots = next;
+}
+
+function renderMenuView(){
+  const container = document.getElementById('menuBands');
+  container.innerHTML = '';
+  menuConfig.forEach((band, bandIdx)=>{
+    const bandEl = el('div',{class:'menu-band'});
+
+    const header = el('div',{class:'menu-band-header'});
+    const heading = el('h3');
+    heading.textContent = band.label;
+    header.appendChild(heading);
+    const countLabel = el('label',{class:'menu-count-label'});
+    countLabel.textContent = 'Quests this week:';
+    const countInput = el('input',{type:'number', min:'0', max:'10', value:String(band.count), class:'menu-count-input'});
+    countInput.onchange = ()=>{
+      band.count = Math.max(0, parseInt(countInput.value,10) || 0);
+      rebuildMenuSlots();
+      renderMenuView();
+    };
+    countLabel.appendChild(countInput);
+    header.appendChild(countLabel);
+    bandEl.appendChild(header);
+
+    const slotsRow = el('div',{class:'menu-slots'});
+    menuSlots.filter(s=> s.bandIdx===bandIdx).forEach(slot=>{
+      slotsRow.appendChild(buildMenuSlotCard(slot));
+    });
+    bandEl.appendChild(slotsRow);
+    container.appendChild(bandEl);
+  });
+}
+
+function buildMenuSlotCard(slot){
+  const card = el('div',{class:'menu-slot-card'});
+  const label = el('p',{class:'menu-slot-label'});
+  label.textContent = `Quest ${slot.slotIdx+1}`;
+  card.appendChild(label);
+
+  const worldGrid = el('div',{class:'world-grid menu-mini-grid'});
+  WORLDS.forEach(w=>{
+    const btn = el('button',{class:'world-btn','aria-pressed': slot.world===w.key, type:'button'});
+    btn.innerHTML = `<b>${w.key}</b>${w.desc}`;
+    btn.onclick = ()=>{ slot.world = w.key; renderMenuView(); };
+    worldGrid.appendChild(btn);
+  });
+  card.appendChild(worldGrid);
+
+  const levelRow = el('div',{class:'level-row'});
+  LEVELS.forEach(l=>{
+    const btn = el('button',{class:'level-btn','aria-pressed': slot.level===l.key, type:'button'});
+    btn.innerHTML = `<span>${l.key}</span><span class="desc">${l.desc}</span>`;
+    btn.onclick = ()=>{ slot.level = l.key; renderMenuView(); };
+    levelRow.appendChild(btn);
+  });
+  card.appendChild(levelRow);
+
+  const coreSel = el('select');
+  coreSel.innerHTML = '<option value="">— choose a Core Skill —</option>';
+  const mathGroup = el('optgroup',{label:'Math'});
+  MATH_SKILLS.forEach(s=> mathGroup.appendChild(el('option',{value:'math:::'+s, html:s})));
+  const sciGroup = el('optgroup',{label:'Science'});
+  SCIENCE_SKILLS.forEach(s=> sciGroup.appendChild(el('option',{value:'science:::'+s, html:s})));
+  coreSel.appendChild(mathGroup); coreSel.appendChild(sciGroup);
+  if(slot.subject && slot.coreSkill) coreSel.value = slot.subject+':::'+slot.coreSkill;
+  coreSel.onchange = ()=>{
+    if(!coreSel.value){ slot.coreSkill=null; slot.subject=null; }
+    else { const [subj, name] = coreSel.value.split(':::'); slot.subject=subj; slot.coreSkill=name; }
+  };
+  card.appendChild(coreSel);
+
+  const langSel = el('select');
+  langSel.innerHTML = '<option value="">— integrate organically (default) —</option>';
+  LANGUAGE_SKILLS.forEach(s=> langSel.appendChild(el('option',{value:s, html:s})));
+  langSel.value = slot.langSkill || '';
+  langSel.onchange = ()=>{ slot.langSkill = langSel.value; };
+  card.appendChild(langSel);
+
+  return card;
+}
+
+function renderMenuRoster(){
+  const roster = document.getElementById('menuRoster');
+  roster.innerHTML = '';
+  menuResults.forEach(r=>{
+    const row = el('div',{class:'saved-item'});
+    const left = el('span');
+    left.innerHTML = `<b>${r.brief.questId}</b> · ${r.bandLabel} · ${r.world}/${r.level} · ${r.coreSkill} — ${r.brief.missionTitle}`;
+    const btn = el('button',{type:'button'});
+    btn.textContent = 'View';
+    btn.disabled = menuGenerating;
+    btn.onclick = ()=>{ switchToSingleView(); reopenQuest(r); };
+    row.appendChild(left); row.appendChild(btn);
+    roster.appendChild(row);
+  });
+}
+
+/* Generates each configured slot one at a time, reusing generateAll() and the global
+   `state` unchanged — sequential so only one Quest's folders ever exist in the DOM at once. */
+async function generateMenu(){
+  const slots = menuSlots;
+  const statusEl = document.getElementById('menuStatus');
+  if(slots.length===0){ statusEl.textContent = 'Add at least one Quest to the menu.'; return; }
+  const incompleteIdx = slots.findIndex(s=> !s.world || !s.level || !s.coreSkill);
+  if(incompleteIdx !== -1){
+    statusEl.textContent = `Quest ${incompleteIdx+1} (${slots[incompleteIdx].bandLabel}) is missing a World, Level, or Core Skill.`;
+    return;
+  }
+
+  document.getElementById('generateMenuBtn').disabled = true;
+  menuGenerating = true;
+  menuResults = [];
+  renderMenuRoster();
+
+  for(let i=0;i<slots.length;i++){
+    const slot = slots[i];
+    statusEl.textContent = `Generating Quest ${i+1} of ${slots.length} — ${slot.bandLabel}…`;
+    state.world = slot.world;
+    state.level = slot.level;
+    state.coreSkill = slot.coreSkill;
+    state.subject = slot.subject;
+    state.langSkill = slot.langSkill || '';
+    await generateAll();
+    menuResults.push({
+      bandLabel: slot.bandLabel, world: state.world, level: state.level,
+      coreSkill: state.coreSkill, langSkill: state.langSkill,
+      brief: state.brief, sections: {...state.sections},
+    });
+    renderMenuRoster();
+  }
+
+  menuGenerating = false;
+  renderMenuRoster();
+  statusEl.textContent = `Done — ${slots.length} Quests generated.`;
+  document.getElementById('generateMenuBtn').disabled = false;
+}
+
 document.getElementById('generateBtn').onclick = generateAll;
+document.getElementById('generateMenuBtn').onclick = generateMenu;
+document.getElementById('modeSingleBtn').onclick = switchToSingleView;
+document.getElementById('modeMenuBtn').onclick = switchToMenuView;
 renderWorldGrid();
 renderLevelRow();
 renderCoreSkillSelect();
 renderLangSelect();
 renderSavedList();
+rebuildMenuSlots();
+renderMenuView();
 </script>
 </body>
 </html>
