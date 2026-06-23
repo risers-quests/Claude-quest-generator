@@ -106,6 +106,9 @@
     font-size:11px; letter-spacing:0.06em; text-transform:uppercase;
   }
   .refine-apply-btn:hover{ background:var(--ink); }
+
+  /* Seeker Week 2 gate */
+  .week2-gate{ padding:10px 20px 16px; border-top:1px solid var(--line-soft); }
 </style>
 </head>
 <body>
@@ -193,7 +196,7 @@ const LANGUAGE_SKILLS = [
   'Narrative Elements','Discussion & Debate',
 ];
 
-const MASTER_SPEC = `You are the generation engine for "Risers' Quests" — a real program where children aged 8-14 ("Risers") complete short, hands-on 3-day projects ("Quests") at school, guided by an adult ("the Guide"). You generate one Quest at a time from a World, a Level, and a Core Skill, plus an optional Language Skill. Follow every rule below exactly.
+const MASTER_SPEC = `You are the generation engine for "Risers' Quests" — a real program where children aged 8-14 ("Risers") complete short, hands-on projects ("Quests") at school, guided by an adult ("the Guide") — 3 Days for Wanderer, Explorer, and Pathfinder; 2 Weeks (6 Days) for Seeker. You generate one Quest at a time from a World, a Level, and a Core Skill, plus an optional Language Skill. Follow every rule below exactly.
 
 LEVELS (least to most self-directed): Seeker, Wanderer, Explorer, Pathfinder. The story is always equally high-stakes at every Level — only self-direction changes.
 - Seeker: explicit, step-by-step, written entirely at the Riser's own reading level. No Guide facilitation assumed.
@@ -208,13 +211,29 @@ FIVE COMPONENTS (Links is conditional):
 2. Pre-Quest Check — 5 self-administered questions: one concept multiple-choice, then four applied short-answer problems with working space, increasing in difficulty. The final question is quietly isomorphic to the Quest's real mechanic without revealing the mission. No answer key. Close with tiered self-scoring guidance naming the SPECIFIC questions that are the real gating signal.
 3. Archives — Riser-facing reading for Stage 1. Blends a real historical/factual narrative anchor, genuinely interesting tangential facts, and the core content knowledge needed, narratively. If a procedural gap is intentional (Links will be provided), stop short of the technique and tease that more is needed. If no Links will be provided, the Archives MUST be fully self-contained. Ends by handing over the mission-specific data/problem.
 4. Links — ONLY if Level is exactly "Explorer" AND a genuine procedural gap exists. Real, well-known, stable educational websites only (e.g. mathsisfun.com, BBC Bitesize, NASA, Khan Academy) — never invent obscure or fictional URLs. State explicitly this is sent only after the Archives are read, never before.
-5. Quest Pack — the full Quest, exactly this six-stage skeleton, always 3 Days:
+5. Quest Pack — the full Quest, exactly this six-stage skeleton. Wanderer, Explorer, and Pathfinder use the STANDARD form (always 3 Days). Seeker uses the SEEKER form (always 2 Weeks, 6 Days). Prescriptiveness must scale exactly to Level as defined above.
+
+   STANDARD (Wanderer / Explorer / Pathfinder):
    Day 1: Stage 1 "Deep Dive" (read the Archives) → Stage 2 "Brain Dump" (free processing; Riser picks a format: Mind Map / List / Sketch / Connect / Write).
    Day 2: Stage 3 "Blueprint" — Part A: commit to a prediction BEFORE investigating; Part B: design a recording tool BEFORE Stage 4 (Table / Tracker / Grid / Tree / Flowchart). Then Stage 4, named "Experiment Zero" if the Core Skill is Science or "Data Analysis" if the Core Skill is Math — do the real work step by step, reach a conclusion, then explicitly compare it back to the Stage 3 prediction.
    Day 3: Stage 5 "What If" (a new, un-researchable twist testing transfer, not lookup — no single right answer, but reasoning must be built on the evidence) → Stage 6 "Leave a Door Open" (the Riser writes ONE genuinely new question, not a summary).
    Close with "Present Your Case" — Day 3 presentation to the group and Guide. Give explicit guidance for the reflection question; leave the presentation itself open for the Guide to facilitate live.
    Include a materials list ONLY if the Quest is physically hands-on. Omit entirely if calculation/investigation-only.
-   Prescriptiveness must scale exactly to Level as defined above.
+
+   SEEKER (hands-on first, simplest possible English, no Guide facilitation assumed):
+   LANGUAGE: every instruction is one short sentence, one action per step, common everyday words only, written at a 1st-grade reading level. Never require the Riser to infer an unstated step — the Riser must be able to complete every Day without asking a question.
+   This Quest Pack is generated and delivered in two parts — write ONLY Week 1 (Days 1-3) when asked for the Quest Pack, and ONLY Week 2 (Days 4-6) when asked for Week 2. Never reveal Week 2 content while writing Week 1.
+
+   WEEK 1:
+   Day 1, Stage 1 "First Look" — a concrete hands-on mini-investigation BEFORE any reading, using ONLY the Riser's own body plus plain paper/pencil/scissors (nothing else — no other materials can be assumed ready on Day 1). Give exact steps with exact counts/actions (e.g. "fold it in half," "count to 20"), ending in a forced binary observation (circle one of two words) — never an open-ended description. The activity must have a direct, obvious link to the Core Skill's concept; if no clean fit exists, default to a simple self-observation (e.g. a pulse-check) rather than a stretch. Follow immediately with a SHORT reading passage (a few sentences, not Archives-length) that makes sense of what the Riser just did, ending on one simple question.
+   Day 2, Stage 2 "Brain Dump" — fixed format, not a Riser choice: a short circle-or-match task testing recall of Day 1. No blank-page drawing or writing.
+   Day 3, Stage 3 "Draw the Model" — Part A: one simple either/or prediction question. Part B: a guided, step-by-step drawing/painting/coloring/collage activity that produces a visual model of the concept — this becomes the Riser's reference for Week 2's build. Materials note: list what Day 3 needs (e.g. markers, paint, colored paper) AND flag that Week 2 Day 1 will need clay or another kid-friendly modeling material, so the Guide can prepare both in advance — without revealing any Week 2 instructions.
+
+   WEEK 2:
+   Day 1, Stage 4 "Build the Model" — a guided, step-by-step build of a physical model using clay or another kid-friendly modeling material, using the Riser's own Week 1 drawing as the reference. End by explicitly comparing the build back to the Day 3 prediction.
+   Day 2, Stage 5 "What If" — the same un-researchable twist as the Standard form, framed as one small hands-on or talk-it-through prompt, same simplest-English style.
+   Day 3, Stage 6 "Leave a Door Open" — one simple, short reflection question (the Riser writes ONE new question, not a summary), then "Present Your Case" to the group and Guide.
+   Ignore the stage4Name field for Seeker — Stage 3 is always "Draw the Model" and Stage 4 is always "Build the Model."
 
 BRANDING: brand name is "Risers' Quests". Quest ID is World-letter + number, e.g. "M-07". Use the field label "Level", never "Difficulty". Never print "Subjects," "Format," "Track," or "Academic" anywhere.
 
@@ -371,12 +390,18 @@ function buildContextLine(){
 function buildContextForSection(key){
   const ctx = {};
   if(key !== 'hook' && state.sections.hook) ctx.hook = state.sections.hook;
-  if(key === 'questPack' && state.sections.archives) ctx.archives = state.sections.archives;
+  if((key === 'questPack' || key === 'questPackWeek2') && state.sections.archives) ctx.archives = state.sections.archives;
+  if(key === 'questPackWeek2' && state.sections.questPack) ctx.questPackWeek1 = state.sections.questPack;
   return ctx;
 }
 
 const SECTION_ORDER = ['hook','preQuestCheck','archives','links','questPack'];
-const SECTION_LABELS = { hook:'Hook Card', preQuestCheck:'Pre-Quest Check', archives:'Archives', links:'Links', questPack:'Quest Pack' };
+const SECTION_LABELS = { hook:'Hook Card', preQuestCheck:'Pre-Quest Check', archives:'Archives', links:'Links', questPack:'Quest Pack', questPackWeek2:'Quest Pack — Week 2' };
+
+function getSectionLabel(key){
+  if(key === 'questPack' && state.level === 'Seeker') return 'Quest Pack — Week 1';
+  return SECTION_LABELS[key];
+}
 
 function sectionPrompt(key, brief, context={}){
   const ctx = `${buildContextLine()}\nQuest ID: ${brief.questId}\nMission Title: ${brief.missionTitle}\nStage 4 Name: ${brief.stage4Name}`;
@@ -388,12 +413,19 @@ function sectionPrompt(key, brief, context={}){
   const archivesBlock = context.archives
     ? `\n\n--- ARCHIVES (already written — Quest Pack stages must align with this content and data) ---\n${context.archives}\n---`
     : '';
+  const week1Block = context.questPackWeek1
+    ? `\n\n--- QUEST PACK WEEK 1 (already written — Week 2 must reference this Riser's actual Week 1 drawing/prediction and stay consistent) ---\n${context.questPackWeek1}\n---`
+    : '';
 
   if(key==='hook') return `${ctx}\n\nWrite the Hook Card now, following the Hook Card rules exactly.`;
   if(key==='preQuestCheck') return `${ctx}\n\nWrite the Pre-Quest Check now, following the rules exactly. Do not reveal the mission's specific scenario, only test the prerequisite skill.`;
   if(key==='archives') return `${ctx}${hookBlock}\nIntentional procedural gap (Links will follow): ${brief.requiresLinks}\nGap description if any: ${brief.linkGapDescription||'none'}\n\nWrite the Archives now, following the rules exactly.`;
   if(key==='links') return `${ctx}${hookBlock}\nGap to fill: ${brief.linkGapDescription}\n\nWrite the Links document now, following the rules exactly.`;
-  if(key==='questPack') return `${ctx}${hookBlock}${archivesBlock}\n\nWrite the full Quest Pack now, following the six-stage skeleton exactly, calibrated to Level "${state.level}".`;
+  if(key==='questPack'){
+    const seekerNote = state.level === 'Seeker' ? ' For Seeker, write ONLY Week 1 (Days 1-3) of the SEEKER form — do not write Week 2.' : '';
+    return `${ctx}${hookBlock}${archivesBlock}\n\nWrite the full Quest Pack now, following the six-stage skeleton exactly, calibrated to Level "${state.level}".${seekerNote}`;
+  }
+  if(key==='questPackWeek2') return `${ctx}${hookBlock}${archivesBlock}${week1Block}\n\nWrite Week 2 (Days 4-6) of the SEEKER Quest Pack now, following the rules exactly.`;
 }
 
 async function generateAll(){
@@ -449,15 +481,38 @@ async function generateAll(){
   if(brief.requiresLinks) phase3.push(generateSection('links', { hook: state.sections.hook }));
   await Promise.allSettled(phase3);
 
+  if(state.level === 'Seeker' && state.sections.questPack) renderWeek2Gate();
+
   saveCurrentQuest();
   renderSavedList();
   document.getElementById('generateBtn').disabled = false;
 }
 
+/* Seeker only: Week 2 (Days 4-6) is withheld until the Guide confirms Week 1 is done */
+function renderWeek2Gate(){
+  const folder = document.getElementById('folder-questPack');
+  if(!folder || folder.querySelector('.week2-gate') || state.sections.questPackWeek2) return;
+  const gate = el('div',{class:'week2-gate'});
+  const btn = el('button',{class:'refine-apply-btn', type:'button'});
+  btn.textContent = 'Week 1 complete — Generate Week 2';
+  btn.onclick = async ()=>{
+    gate.remove();
+    document.getElementById('caseArea').appendChild(buildFolderSkeleton('questPackWeek2'));
+    await generateSection('questPackWeek2', {
+      hook: state.sections.hook,
+      archives: state.sections.archives,
+      questPackWeek1: state.sections.questPack,
+    });
+    saveCurrentQuest();
+  };
+  gate.appendChild(btn);
+  folder.appendChild(gate);
+}
+
 function buildFolderSkeleton(key){
   const folder = el('div',{class:'folder', id:'folder-'+key});
   const tab = el('div',{class:'folder-tab'});
-  tab.innerHTML = `<h3>${SECTION_LABELS[key]}</h3><span class="status mono"><span class="loading-pulse"></span> generating…</span>`;
+  tab.innerHTML = `<h3>${getSectionLabel(key)}</h3><span class="status mono"><span class="loading-pulse"></span> generating…</span>`;
   tab.onclick = ()=>{
     const body = document.getElementById('body-'+key);
     if(body) body.classList.toggle('collapsed');
@@ -661,6 +716,7 @@ function reopenQuest(data){
     document.querySelector('#folder-'+key+' .status').textContent = 'done';
     addFolderActions(key);
   });
+  if(state.level === 'Seeker' && state.sections.questPack) renderWeek2Gate();
 }
 
 document.getElementById('generateBtn').onclick = generateAll;
