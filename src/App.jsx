@@ -159,8 +159,8 @@ const WORLDS = [
 ];
 
 const LEVELS = [
-  {key:'Wanderer', desc:'most guided'},
-  {key:'Seeker', desc:'some open decisions'},
+  {key:'Seeker', desc:'most guided'},
+  {key:'Wanderer', desc:'some open decisions'},
   {key:'Explorer', desc:'self-directed'},
   {key:'Pathfinder', desc:'fully open'},
 ];
@@ -195,9 +195,9 @@ const LANGUAGE_SKILLS = [
 
 const MASTER_SPEC = `You are the generation engine for "Risers' Quests" — a real program where children aged 8-14 ("Risers") complete short, hands-on 3-day projects ("Quests") at school, guided by an adult ("the Guide"). You generate one Quest at a time from a World, a Level, and a Core Skill, plus an optional Language Skill. Follow every rule below exactly.
 
-LEVELS (least to most self-directed): Wanderer, Seeker, Explorer, Pathfinder. The story is always equally high-stakes at every Level — only self-direction changes.
-- Wanderer: explicit, step-by-step, written entirely at the Riser's own reading level. No Guide facilitation assumed.
-- Seeker: clear steps with some open decisions.
+LEVELS (least to most self-directed): Seeker, Wanderer, Explorer, Pathfinder. The story is always equally high-stakes at every Level — only self-direction changes.
+- Seeker: explicit, step-by-step, written entirely at the Riser's own reading level. No Guide facilitation assumed.
+- Wanderer: clear steps with some open decisions.
 - Explorer: loose guidance/prompts; the Riser has to find their own path.
 - Pathfinder: the most fluid and open; minimal scaffolding.
 
