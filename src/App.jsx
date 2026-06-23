@@ -206,18 +206,18 @@ LEVELS (least to most self-directed): Seeker, Wanderer, Explorer, Pathfinder. Th
 
 WORLDS: Fantasy (a world that doesn't exist; real science separates fact from fiction), Adventure (a real-world crisis at a scale the Riser can design a response for), Mystery (the scientific explanation behind a real event), Drama (scientific/philosophical thinking applied to debate, art, or performance).
 
-FIVE COMPONENTS (Links is conditional):
+FIVE COMPONENTS (Pre-Quest Check is skipped for Seeker; Links is conditional):
 1. Hook Card — punchy, escalating, high-stakes scene-setting, never a flat paragraph, ending on a short imperative. Footer shows Core Skill and Level ONLY — never Subject.
-2. Pre-Quest Check — 5 self-administered questions: one concept multiple-choice, then four applied short-answer problems with working space, increasing in difficulty. The final question is quietly isomorphic to the Quest's real mechanic without revealing the mission. No answer key. Close with tiered self-scoring guidance naming the SPECIFIC questions that are the real gating signal.
-3. Archives — Riser-facing reading for Stage 1. Blends a real historical/factual narrative anchor, genuinely interesting tangential facts, and the core content knowledge needed, narratively. If a procedural gap is intentional (Links will be provided), stop short of the technique and tease that more is needed. If no Links will be provided, the Archives MUST be fully self-contained. Ends by handing over the mission-specific data/problem.
-4. Links — ONLY if Level is exactly "Explorer" AND a genuine procedural gap exists. Real, well-known, stable educational websites only (e.g. mathsisfun.com, BBC Bitesize, NASA, Khan Academy) — never invent obscure or fictional URLs. State explicitly this is sent only after the Archives are read, never before.
+2. Pre-Quest Check — ONLY for Wanderer, Explorer, and Pathfinder; Seeker skips this component entirely. 5 self-administered questions: one concept multiple-choice, then four applied short-answer problems with working space, increasing in difficulty. Every question must have a single, objective, definitively correct answer (a calculation, a fact, a clear right answer) — never a prediction, opinion, or open-interpretation question, since the Riser self-scores by checking their own answer against the underlying math/fact. The final question is quietly isomorphic to the Quest's real mechanic without revealing the mission. No answer key. Close with tiered self-scoring guidance naming the SPECIFIC questions that are the real gating signal.
+3. Archives — Riser-facing reading for Stage 1, in two parts. Open with one line telling the Riser what the two parts are and why, before they start reading (e.g. naming that Part 1 is the story/history and Part 2 is the science they'll need) — never leave the Riser to guess why the reading is split. Blends a real historical/factual narrative anchor, genuinely interesting tangential facts, and the core content knowledge needed, narratively. Vocabulary scales with Level: simplest words for Wanderer, moderately bigger words intentionally for Explorer and Pathfinder — but sentence structure stays clear and simple at every Level, including inside the Quest Pack. If a procedural gap is intentional (Links will be provided), stop short of the technique and tease that more is needed. If no Links will be provided, the Archives MUST be fully self-contained. Ends by handing over the mission-specific data/problem.
+4. Links — ONLY if Level is exactly "Explorer" AND a genuine procedural gap exists. Real, well-known, stable educational websites only (e.g. mathsisfun.com, BBC Bitesize, NASA, Khan Academy) — never invent obscure or fictional URLs. Written as a short, ready-to-forward message (a one-line intro plus the links) that the Guide manually forwards to the Riser's email — never a long document. State explicitly this is sent only after the Archives are read, never before.
 5. Quest Pack — the full Quest, exactly this six-stage skeleton. Wanderer, Explorer, and Pathfinder use the STANDARD form (always 3 Days). Seeker uses the SEEKER form (always 2 Weeks, 6 Days). Prescriptiveness must scale exactly to Level as defined above.
 
    STANDARD (Wanderer / Explorer / Pathfinder):
-   Day 1: Stage 1 "Deep Dive" (read the Archives) → Stage 2 "Brain Dump" (free processing; Riser picks a format: Mind Map / List / Sketch / Connect / Write).
-   Day 2: Stage 3 "Blueprint" — Part A: commit to a prediction BEFORE investigating; Part B: design a recording tool BEFORE Stage 4 (Table / Tracker / Grid / Tree / Flowchart). Then Stage 4, named "Experiment Zero" if the Core Skill is Science or "Data Analysis" if the Core Skill is Math — do the real work step by step, reach a conclusion, then explicitly compare it back to the Stage 3 prediction.
+   Day 1: Stage 1 "Deep Dive" (read the Archives) → Stage 2 "Brain Dump" — Riser picks exactly one format: Mind Map (a free-form radial diagram branching out from one central topic) or KWL Chart (K: What I Know, W: What I Want to Find Out — both filled in now; L: What I Learned stays blank until after Stage 4, then gets filled in as part of the Day 3 wrap-up).
+   Day 2: Stage 3 "Blueprint" — Part A: commit to ONE prediction BEFORE investigating (no data or results yet). Part B: design a recording tool BEFORE Stage 4, choosing exactly one of two types: Table (rows + columns) or Tracker (checklist style) — design only, leave it empty. Stage 3 must contain zero actual data or results. Then Stage 4, named "Experiment Zero" if the Core Skill is Science or "Data Analysis" if the Core Skill is Math — do the real work step by step, filling the Stage 3 recording tool with actual results (zero new predictions here), reach a conclusion, then explicitly compare it back to the Stage 3 prediction. Stage 3 and Stage 4 must read as clearly distinct phases — planning only, then execution only.
    Day 3: Stage 5 "What If" (a new, un-researchable twist testing transfer, not lookup — no single right answer, but reasoning must be built on the evidence) → Stage 6 "Leave a Door Open" (the Riser writes ONE genuinely new question, not a summary).
-   Close with "Present Your Case" — Day 3 presentation to the group and Guide. Give explicit guidance for the reflection question; leave the presentation itself open for the Guide to facilitate live.
+   Close with "Present Your Case" — Day 3 presentation to the group and Guide, using this fixed four-part worksheet every time, never inventing different prompts: 01 Narration (presenter answers "What was this quest about?", "What did you find or conclude?", and "What question are you walking away with?" — the last one restates the Stage 6 question, not a new one); 02 Display (show the Brain Dump, Blueprint, recording tool, and output — no explanation needed, let the work speak); 03 Self Review (presenter answers "One thing that worked" and "One thing I would do differently"); 04 Peer Review (a Fellow Riser, Guide-facilitated, live, answers "I appreciate…", "I observed…", "My question is…").
    Include a materials list ONLY if the Quest is physically hands-on. Omit entirely if calculation/investigation-only.
 
    SEEKER (hands-on first, simplest possible English, no Guide facilitation assumed):
@@ -456,21 +456,22 @@ async function generateAll(){
 
   sealRow.innerHTML = `<div class="seal"><span class="qid">${brief.questId}</span><span class="title">${brief.missionTitle}</span></div>`;
 
-  const sectionsToBuild = SECTION_ORDER.filter(s => s!=='links' || brief.requiresLinks);
+  const sectionsToBuild = SECTION_ORDER.filter(s =>
+    (s!=='links' || brief.requiresLinks) && (s!=='preQuestCheck' || state.level!=='Seeker')
+  );
   sectionsToBuild.forEach(key=>{
     caseArea.appendChild(buildFolderSkeleton(key));
   });
 
   /*
    * Three-phase generation for narrative coherence:
-   *   Phase 1 (parallel): Hook + Pre-Quest Check — no cross-dependencies
+   *   Phase 1 (parallel): Hook + Pre-Quest Check — no cross-dependencies (Pre-Quest Check skipped for Seeker)
    *   Phase 2 (sequential): Archives — reads Hook so setting/characters stay consistent
    *   Phase 3 (parallel): Quest Pack + Links — Quest Pack reads both Hook and Archives
    */
-  await Promise.allSettled([
-    generateSection('hook', {}),
-    generateSection('preQuestCheck', {}),
-  ]);
+  const phase1 = [ generateSection('hook', {}) ];
+  if(state.level !== 'Seeker') phase1.push(generateSection('preQuestCheck', {}));
+  await Promise.allSettled(phase1);
 
   await generateSection('archives', { hook: state.sections.hook });
 
