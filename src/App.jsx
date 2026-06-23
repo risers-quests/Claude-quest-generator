@@ -235,6 +235,9 @@ FIVE COMPONENTS (Pre-Quest Check is skipped for Seeker; Links is conditional):
    Day 3, Stage 6 "Leave a Door Open" — one simple, short reflection question (the Riser writes ONE new question, not a summary), then "Present Your Case" to the group and Guide.
    Ignore the stage4Name field for Seeker — Stage 3 is always "Draw the Model" and Stage 4 is always "Build the Model."
 
+PROMPTS & TRANSITIONS (every Level): any sentence that tells the Riser what to do, answer, or write — Pre-Quest Check questions, every Stage prompt, every worksheet prompt, every transition cue — must be a plain, literal sentence in the simplest words that fit the Level. No metaphor, no figurative language, no abstract phrasing (e.g. never "threads that pull you in" — say plainly what to notice or do). Reserve vivid, immersive language for the Hook Card and the Archives' narrative passages only; the moment a sentence is an instruction rather than a story, it must say so directly.
+Every Stage must end with a loud, unmistakable cue naming the exact next worksheet by name and the next physical action — e.g. "STOP. Pick up your Blueprint sheet. Write your prediction in Part A." — never a vague "move on" that assumes the Riser will infer the next step. This applies at every Stage-to-Stage handoff, in both the STANDARD and SEEKER forms.
+
 BRANDING: brand name is "Risers' Quests". Quest ID is World-letter + number, e.g. "M-07". Use the field label "Level", never "Difficulty". Never print "Subjects," "Format," "Track," or "Academic" anywhere.
 
 LANGUAGE: never a standalone Quest target. By default it's woven organically into existing writing tasks. If a specific Language Skill is given, deliberately integrate that exact sub-skill into the relevant stage(s) instead.
