@@ -82,8 +82,27 @@
   }
   .folder-tab h3{ margin:0; font-size:14px; letter-spacing:0.04em; }
   .folder-tab .status{ font-family:'IBM Plex Mono', monospace; font-size:11px; opacity:0.85; }
-  .folder-body{ padding:18px 20px; white-space:pre-wrap; font-size:15.5px; }
+  .folder-body{ padding:18px 20px; font-size:15.5px; font-family:'Source Serif 4', serif; line-height:1.55; color:var(--ink); }
+  .folder-body.streaming{ white-space:pre-wrap; }
   .folder-body.collapsed{ display:none; }
+  .folder-body h1{ font-family:'Fraunces',serif; font-weight:700; font-size:20px; margin:0 0 14px; letter-spacing:-0.01em; }
+  .folder-body h2{ font-family:'Fraunces',serif; font-weight:700; font-size:17px; margin:22px 0 12px; padding-bottom:8px; border-bottom:2px solid var(--gold); }
+  .folder-body h2:first-child{ margin-top:0; }
+  .folder-body h3{ font-family:'Fraunces',serif; font-weight:700; font-size:15px; margin:18px 0 8px; }
+  .folder-body p{ margin:0 0 12px; }
+  .folder-body p:last-child{ margin-bottom:0; }
+  .folder-body strong{ font-weight:700; }
+  .folder-body em{ font-style:italic; }
+  .folder-body hr{ border:none; border-top:1px solid var(--line); margin:18px 0; }
+  .folder-body blockquote{ margin:0 0 14px; padding:10px 16px; border-left:3px solid var(--gold); background:rgba(217,178,107,0.08); font-style:italic; }
+  .folder-body blockquote p{ margin:0 0 6px; }
+  .folder-body blockquote p:last-child{ margin-bottom:0; }
+  .folder-body ul, .folder-body ol{ margin:0 0 14px; padding-left:22px; }
+  .folder-body li{ margin-bottom:6px; }
+  .folder-body table{ width:100%; border-collapse:collapse; margin:0 0 14px; font-size:14px; }
+  .folder-body th, .folder-body td{ border:1px solid var(--line); padding:6px 10px; text-align:left; }
+  .folder-body th{ background:var(--paper); font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.04em; text-transform:uppercase; }
+  .folder-body a{ color:var(--mystery); text-decoration:underline; }
   .folder-actions{ display:flex; gap:10px; padding:10px 20px 16px; border-top:1px solid var(--line-soft); }
   .folder-actions button{ background:#fff; border:1px solid var(--line); padding:6px 12px; font-size:11px; letter-spacing:0.04em; }
   .folder-actions button:hover{ border-color:var(--ink); }
@@ -374,6 +393,8 @@ COMPONENTS (Pre-Quest Check is skipped for Wanderer; Links and Materials to Brin
 PROMPTS & TRANSITIONS (every Level): any sentence that tells the Riser what to do, answer, or write — Pre-Quest Check questions, every Stage prompt, every worksheet prompt, every transition cue — must be a plain, literal sentence in the simplest words that fit the Level. No metaphor, no figurative language, no abstract phrasing (e.g. never "threads that pull you in" — say plainly what to notice or do). Reserve vivid, immersive language for the Hook Card and the Archives' narrative passages only; the moment a sentence is an instruction rather than a story, it must say so directly.
 Every Stage must end with its own clearly set-off transition line — visually its own short break, never buried in the last paragraph — naming the exact next worksheet by name and the next physical action, in calm, simple, plain language. No commands or shouting (never "STOP"); just a quiet, direct statement of what comes next — e.g. "Next: open your Blueprint sheet. Write your prediction in Part A." Never a vague "move on" that assumes the Riser will infer the next step. This applies at every Stage-to-Stage handoff, in both the STANDARD and WANDERER forms.
 
+FORMATTING: output is rendered from Markdown — use real Markdown (## headings for Day/Stage names, **bold**, blockquotes, numbered/bulleted lists, tables) deliberately and well, never as decoration. Never start a section with a document title, the "Risers' Quests" brand name, the Quest ID, or the Mission Title as a heading — the app's own header chrome already displays the section name, World, Level, and Mission Title above the content. Begin directly with the section's real first line of content.
+
 BRANDING: brand name is "Risers' Quests". Quest ID is World-letter + number, e.g. "M-07". Level and Difficulty are separate fields — never use one label for the other. Never print "Subjects," "Format," "Track," or "Academic" anywhere.
 
 LANGUAGE: never a standalone Quest target. By default it's woven organically into existing writing tasks. If a specific Language Skill is given, deliberately integrate that exact sub-skill into the relevant stage(s) instead.
@@ -549,6 +570,92 @@ async function callClaudeStream(system, messages, onChunk){
 
 function stripJsonFence(text){
   return text.replace(/```json|```/g,'').trim();
+}
+
+/* Minimal Markdown-to-HTML renderer for streamed Quest content — headings, bold/italic,
+   links, blockquotes, rules, lists, and tables. No external dependency, since the app
+   ships as a single static file with no bundler. */
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderInline(text){
+  let s = escapeHtml(text);
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return s;
+}
+
+function splitTableRow(line){
+  let l = line.trim();
+  if(l.startsWith('|')) l = l.slice(1);
+  if(l.endsWith('|')) l = l.slice(0,-1);
+  return l.split('|').map(c=>c.trim());
+}
+
+const isHr = l => /^(-{3,}|\*{3,}|_{3,})\s*$/.test(l.trim());
+const isBlockquote = l => /^>\s?/.test(l);
+const isBullet = l => /^\s*[-*]\s+/.test(l) && !isHr(l);
+const isOrdered = l => /^\s*\d+\.\s+/.test(l);
+const isHeading = l => /^#{1,6}\s+/.test(l);
+const isTableSep = l => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+const isBlockStart = l => l.trim()==='' || isHeading(l) || isHr(l) || isBlockquote(l) || isBullet(l) || isOrdered(l);
+
+function renderMarkdown(md){
+  if(!md) return '';
+  const lines = md.replace(/\r\n/g,'\n').split('\n');
+  let html = '';
+  let i = 0;
+  while(i < lines.length){
+    const line = lines[i];
+
+    if(line.trim()===''){ i++; continue; }
+
+    const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+    if(headingMatch){
+      html += `<h${headingMatch[1].length}>${renderInline(headingMatch[2].trim())}</h${headingMatch[1].length}>`;
+      i++; continue;
+    }
+
+    if(isHr(line)){ html += '<hr>'; i++; continue; }
+
+    if(isBlockquote(line)){
+      const quoteLines = [];
+      while(i < lines.length && isBlockquote(lines[i])){ quoteLines.push(lines[i].replace(/^>\s?/, '')); i++; }
+      html += `<blockquote><p>${quoteLines.map(renderInline).join('<br>')}</p></blockquote>`;
+      continue;
+    }
+
+    if(line.includes('|') && i+1 < lines.length && isTableSep(lines[i+1])){
+      const headerCells = splitTableRow(line);
+      i += 2;
+      const bodyRows = [];
+      while(i < lines.length && lines[i].includes('|') && lines[i].trim()!==''){ bodyRows.push(splitTableRow(lines[i])); i++; }
+      html += '<table><thead><tr>' + headerCells.map(c=>`<th>${renderInline(c)}</th>`).join('') + '</tr></thead><tbody>' +
+        bodyRows.map(r=>'<tr>'+r.map(c=>`<td>${renderInline(c)}</td>`).join('')+'</tr>').join('') + '</tbody></table>';
+      continue;
+    }
+
+    if(isBullet(line)){
+      const items = [];
+      while(i < lines.length && isBullet(lines[i])){ items.push(lines[i].replace(/^\s*[-*]\s+/, '')); i++; }
+      html += '<ul>' + items.map(it=>`<li>${renderInline(it)}</li>`).join('') + '</ul>';
+      continue;
+    }
+
+    if(isOrdered(line)){
+      const items = [];
+      while(i < lines.length && isOrdered(lines[i])){ items.push(lines[i].replace(/^\s*\d+\.\s+/, '')); i++; }
+      html += '<ol>' + items.map(it=>`<li>${renderInline(it)}</li>`).join('') + '</ol>';
+      continue;
+    }
+
+    const paraLines = [];
+    while(i < lines.length && !isBlockStart(lines[i])){ paraLines.push(lines[i]); i++; }
+    html += `<p>${paraLines.map(renderInline).join('<br>')}</p>`;
+  }
+  return html;
 }
 
 function buildContextLine(){
@@ -737,6 +844,7 @@ async function generateSection(key, context={}){
   if(!body) return;
 
   body.innerHTML = '';
+  body.classList.add('streaming');
   const textNode = document.createTextNode('');
   const cursor = el('span',{class:'stream-cursor'});
   cursor.textContent = '▋';
@@ -749,13 +857,14 @@ async function generateSection(key, context={}){
       [{role:'user', content: sectionPrompt(key, state.brief, context)}],
       (chunk) => { textNode.textContent += chunk; }
     );
-    cursor.remove();
+    body.classList.remove('streaming');
+    body.innerHTML = renderMarkdown(fullText);
     state.sections[key] = fullText;
     const tab = document.querySelector('#folder-'+key+' .status');
     if(tab) tab.innerHTML = 'done';
     addFolderActions(key);
   } catch(e){
-    cursor.remove();
+    body.classList.remove('streaming');
     body.innerHTML = `<span class="error-note">Failed to generate — ${e.message}</span>`;
     const tab = document.querySelector('#folder-'+key+' .status');
     if(tab){
@@ -836,6 +945,7 @@ async function refineSection(key, instructions, folder, triggerBtn, panel){
   const originalPrompt = sectionPrompt(key, state.brief, buildContextForSection(key));
 
   body.innerHTML = '';
+  body.classList.add('streaming');
   const textNode = document.createTextNode('');
   const cursor = el('span',{class:'stream-cursor'});
   cursor.textContent = '▋';
@@ -856,15 +966,16 @@ async function refineSection(key, instructions, folder, triggerBtn, panel){
       ],
       (chunk) => { textNode.textContent += chunk; }
     );
-    cursor.remove();
+    body.classList.remove('streaming');
+    body.innerHTML = renderMarkdown(fullText);
     state.sections[key] = fullText;
     if(tab) tab.innerHTML = 'done';
     addFolderActions(key);
     saveCurrentQuest();
   } catch(e){
-    cursor.remove();
+    body.classList.remove('streaming');
     /* Restore original on failure */
-    body.textContent = originalContent;
+    body.innerHTML = renderMarkdown(originalContent);
     if(tab) tab.innerHTML = 'done';
     const errSpan = el('span',{class:'error-note'});
     errSpan.textContent = ` — Refinement failed: ${e.message}`;
@@ -923,7 +1034,7 @@ function reopenQuest(data){
   Object.keys(data.sections).forEach(key=>{
     const folder = buildFolderSkeleton(key);
     caseArea.appendChild(folder);
-    document.getElementById('body-'+key).textContent = data.sections[key];
+    document.getElementById('body-'+key).innerHTML = renderMarkdown(data.sections[key]);
     document.querySelector('#folder-'+key+' .status').textContent = 'done';
     addFolderActions(key);
   });
