@@ -132,6 +132,25 @@
   .menu-generate-btn{ width:100%; margin-top:22px; padding:14px; background:var(--stamp); color:#fff; border:none; font-size:14px; letter-spacing:0.08em; text-transform:uppercase; font-weight:600; }
   .menu-generate-btn:disabled{ background:#B79; opacity:0.5; cursor:not-allowed; }
   .menu-status{ font-size:12px; opacity:0.7; margin-top:10px; font-family:'IBM Plex Mono', monospace; }
+
+  /* Print / Save as PDF */
+  .case-col{ min-width:0; }
+  .print-bar{ display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
+  .print-bar .hint{ margin:0; }
+
+  @media print{
+    body{ background:#fff; }
+    .mode-tabs, .intake, .menu-view, .print-bar, .placeholder,
+    .folder-actions, .refine-panel, .week2-gate, .saved{ display:none !important; }
+    .app{ max-width:none; padding:0; }
+    .layout{ display:block; }
+    .seal{ transform:none; }
+    .folder{ border:1px solid #999; margin-bottom:0; }
+    .folder + .folder{ page-break-before:always; break-before:page; }
+    .folder-tab{ background:none; color:#000; border-bottom:1px solid #999; }
+    .folder-tab .status, .stream-cursor{ display:none; }
+    .folder-body.collapsed{ display:block !important; }
+  }
   .menu-roster{ margin-top:18px; border-top:1px dashed var(--line); padding-top:14px; }
 </style>
 </head>
@@ -180,8 +199,14 @@
       </div>
     </div>
 
-    <div class="case-area" id="caseArea">
-      <div class="placeholder">No active case. Fill out the request form and generate a Quest to begin.</div>
+    <div class="case-col">
+      <div class="print-bar" id="printBar" style="display:none;">
+        <button class="refine-apply-btn" id="printBtn" type="button">Print / Save as PDF</button>
+        <p class="hint">Opens your browser's print dialog — choose "Save as PDF" as the destination. Every document prints on its own page, so nothing overlaps when you cut them apart.</p>
+      </div>
+      <div class="case-area" id="caseArea">
+        <div class="placeholder">No active case. Fill out the request form and generate a Quest to begin.</div>
+      </div>
     </div>
 
   </div>
@@ -533,6 +558,7 @@ async function generateAll(){
   }
 
   sealRow.innerHTML = `<div class="seal"><span class="qid">${brief.questId}</span><span class="title">${brief.missionTitle}</span></div>`;
+  document.getElementById('printBar').style.display = '';
 
   const sectionsToBuild = SECTION_ORDER.filter(s =>
     (s!=='links' || brief.requiresLinks) &&
@@ -802,6 +828,7 @@ function reopenQuest(data){
   const sealRow = el('div');
   sealRow.innerHTML = `<div class="seal"><span class="qid">${data.brief.questId}</span><span class="title">${data.brief.missionTitle}</span></div>`;
   caseArea.appendChild(sealRow);
+  document.getElementById('printBar').style.display = '';
   Object.keys(data.sections).forEach(key=>{
     const folder = buildFolderSkeleton(key);
     caseArea.appendChild(folder);
@@ -990,6 +1017,7 @@ document.getElementById('generateBtn').onclick = generateAll;
 document.getElementById('generateMenuBtn').onclick = generateMenu;
 document.getElementById('modeSingleBtn').onclick = switchToSingleView;
 document.getElementById('modeMenuBtn').onclick = switchToMenuView;
+document.getElementById('printBtn').onclick = ()=> window.print();
 renderWorldGrid();
 renderLevelRow();
 renderDifficultyRow();
