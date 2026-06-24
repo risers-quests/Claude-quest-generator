@@ -74,6 +74,8 @@
 
   .folder{ background:var(--card); border:1px solid var(--line); margin-bottom:18px; position:relative; }
   .cut-line{ border-top:1px dashed var(--line); text-align:center; font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.03em; opacity:0.6; padding-top:6px; margin:0 12px; }
+  .hook-motif{ position:absolute; right:14px; bottom:14px; width:150px; height:150px; opacity:0.16; z-index:-1; pointer-events:none; }
+  .hook-motif svg{ width:100%; height:100%; display:block; }
   .folder-tab{
     display:flex; justify-content:space-between; align-items:center; gap:10px;
     padding:10px 16px; background:var(--ink); color:var(--paper); cursor:pointer;
@@ -249,6 +251,31 @@ const WORLDS = [
   {key:'Mystery', letter:'M', color:'var(--mystery)', desc:'The science behind real events'},
   {key:'Drama', letter:'D', color:'var(--drama)', desc:'Debate, art, or performance'},
 ];
+
+/* Faint line-art motifs for the Hook Card, themed per World — stroke only, no fill, so they stay cheap to print */
+const WORLD_MOTIFS = {
+  Fantasy: `<svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round">
+    <path d="M130,40 A55,55 0 1,0 130,150 A40,40 0 1,1 130,40 Z"/>
+    <path d="M50,55 L56,69 L70,75 L56,81 L50,95 L44,81 L30,75 L44,69 Z"/>
+    <path d="M40,126 L44,136 L54,140 L44,144 L40,154 L36,144 L26,140 L36,136 Z"/>
+  </svg>`,
+  Adventure: `<svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round">
+    <circle cx="100" cy="100" r="70"/>
+    <path d="M100,30 L112,100 L100,170 L88,100 Z"/>
+    <path d="M30,100 L100,88 L170,100 L100,112 Z"/>
+    <circle cx="100" cy="100" r="5" fill="currentColor" stroke="none"/>
+  </svg>`,
+  Mystery: `<svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+    <circle cx="85" cy="85" r="50"/>
+    <line x1="121" y1="121" x2="165" y2="165"/>
+  </svg>`,
+  Drama: `<svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+    <ellipse cx="100" cy="100" rx="55" ry="70"/>
+    <circle cx="80" cy="85" r="6" fill="currentColor" stroke="none"/>
+    <circle cx="120" cy="85" r="6" fill="currentColor" stroke="none"/>
+    <path d="M75,130 Q100,150 125,130"/>
+  </svg>`,
+};
 
 const LEVELS = [
   {key:'Seeker', desc:'most guided'},
@@ -665,6 +692,14 @@ function buildFolderSkeleton(key){
   const printFooter = el('div',{class:'print-footer'});
   printFooter.innerHTML = `<span class="pb-quest">Risers' Quests · ${brief.questId||''}</span><span class="pb-page"></span>`;
   folder.appendChild(printFooter);
+
+  if(key==='hook' && WORLD_MOTIFS[state.world]){
+    const worldColor = WORLDS.find(w=>w.key===state.world)?.color || 'var(--ink)';
+    const motif = el('div',{class:'hook-motif'});
+    motif.style.color = worldColor;
+    motif.innerHTML = WORLD_MOTIFS[state.world];
+    folder.appendChild(motif);
+  }
 
   return folder;
 }
