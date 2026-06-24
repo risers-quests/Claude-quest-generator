@@ -210,6 +210,9 @@
       <label for="langSkillSelect">Language Skill (optional)</label>
       <select id="langSkillSelect"></select>
 
+      <label for="contextSelect">Context (optional)</label>
+      <select id="contextSelect"></select>
+
       <button class="generate-btn" id="generateBtn">Generate Quest</button>
       <p class="hint" id="statusHint">Pick a World, a Level, and a Core Skill.</p>
 
@@ -317,48 +320,13 @@ const LANGUAGE_SKILLS = [
   'Narrative Elements','Discussion & Debate',
 ];
 
-const HISTORY_SKILLS = [
-  'Ancient civilizations (Egypt, Mesopotamia, Indus Valley)','Ancient Greece and Rome','World religions and belief systems',
-  'Medieval kingdoms and trade routes','Age of Exploration','Colonialism and its consequences','The Industrial Revolution',
-  'World War I','World War II','The Cold War','Independence and decolonization movements','Civil rights movements',
-  'Causes and effects of revolutions','Reading and interpreting primary sources','Building timelines and cause-effect chains',
+const CONTEXTS = [
+  'Kitchen / Restaurant','Automobiles & Engines','Fashion & Textiles','Manufacturing & Factories',
+  'History','Politics & Civics','Human Origins & Evolution','Sports','Space & Astronomy',
+  'Music & Sound','Architecture & Construction','Farming & Agriculture',
 ];
 
-const POLITICS_SKILLS = [
-  'What government is for','Types of government (democracy, monarchy, dictatorship)','Branches of government and separation of powers',
-  'How laws are made','Rights and responsibilities of citizens','Elections and voting systems','Local vs national government',
-  'International organizations (e.g. the UN)','Basic economics of government: taxes and budgets',
-  'Debating public policy issues','Media literacy and spotting bias',
-];
-
-const HUMAN_ORIGINS_SKILLS = [
-  'Evolution by natural selection (basics)','Human ancestors and early hominins','Fossil evidence and how it is dated',
-  'Migration of early humans across continents','Development of language and communication','Development of agriculture and early settlements',
-  'Early tools and technology','Comparing humans to other primates','How societies and cultures form',
-  'Genetics and what makes species related',
-];
-
-const AUTOMOTIVE_SKILLS = [
-  'How an internal combustion engine works','Petrol vs diesel engines','Pistons, crankshafts, and cylinders',
-  'The four-stroke engine cycle','Fuel systems and combustion','Cooling and lubrication systems','Transmission and gears',
-  'Electric vs combustion vehicles','Braking systems','Basic vehicle safety systems','How energy converts to motion in a vehicle',
-];
-
-const MANUFACTURING_SKILLS = [
-  'From raw material to finished product','Assembly lines and mass production','Quality control and testing',
-  'Standardization and interchangeable parts','Automation and robotics in factories','Supply chains and logistics',
-  '3D printing and modern fabrication','Sustainability and waste in manufacturing','Scaling a product from prototype to factory',
-  'Safety in industrial processes',
-];
-
-const FASHION_SKILLS = [
-  'Fibers and fabrics: natural vs synthetic','How garments are designed and patterned','The design process: sketch to sample',
-  'Color, texture, and silhouette basics','Fast fashion vs sustainable fashion','Historical fashion eras and what they reveal about their time',
-  'Textile production and dyeing','Fashion as cultural identity and self-expression','Supply chains in the fashion industry',
-  'Designing for function vs designing for style',
-];
-
-const MASTER_SPEC = `You are the generation engine for "Risers' Quests" — a real program where children aged 8-14 ("Risers") complete short, hands-on projects ("Quests") at school, guided by an adult ("the Guide") — 3 Days for Seeker, Explorer, and Pathfinder; 2 Weeks (6 Days) for Wanderer. You generate one Quest at a time from a World, a Level, and a Core Skill, plus an optional Language Skill and — for Wanderer only — a Difficulty. Follow every rule below exactly.
+const MASTER_SPEC = `You are the generation engine for "Risers' Quests" — a real program where children aged 8-14 ("Risers") complete short, hands-on projects ("Quests") at school, guided by an adult ("the Guide") — 3 Days for Seeker, Explorer, and Pathfinder; 2 Weeks (6 Days) for Wanderer. You generate one Quest at a time from a World, a Level, and a Core Skill, plus an optional Language Skill, an optional Context, and — for Wanderer only — a Difficulty. Follow every rule below exactly.
 
 LEVELS (least to most self-directed): Wanderer, Seeker, Explorer, Pathfinder. The story is always equally high-stakes at every Level — only self-direction changes.
 - Wanderer: explicit, step-by-step, written entirely at the Riser's own reading level. No Guide facilitation assumed.
@@ -383,7 +351,7 @@ COMPONENTS (Pre-Quest Check is skipped for Wanderer; Links and Materials to Brin
 
    STANDARD (Seeker / Explorer / Pathfinder):
    Day 1: Stage 1 "Deep Dive" (read the Archives) → Stage 2 "Brain Dump" — Riser picks exactly one format: Mind Map (a free-form radial diagram branching out from one central topic) or KWL Chart (K: What I Know, W: What I Want to Find Out — both filled in now; L: What I Learned stays blank until after Stage 4, then gets filled in as part of the Day 3 wrap-up).
-   Day 2: Stage 3 "Blueprint" — Part A: commit to ONE prediction BEFORE investigating (no data or results yet). Part B: design a recording tool BEFORE Stage 4, choosing exactly one of two types: Table (rows + columns) or Tracker (checklist style) — design only, leave it empty. Stage 3 must contain zero actual data or results. Then Stage 4, named "Experiment Zero" if the Core Skill is Science, "Data Analysis" if the Core Skill is Math, or another short, fitting name you choose for the Core Skill's subject otherwise (e.g. "Investigation" for History/Politics/Human Origins, "Build & Test" for Automotive/Manufacturing, "Design Lab" for Fashion) — do the real work step by step, filling the Stage 3 recording tool with actual results (zero new predictions here), reach a conclusion, then explicitly compare it back to the Stage 3 prediction. Stage 3 and Stage 4 must read as clearly distinct phases — planning only, then execution only.
+   Day 2: Stage 3 "Blueprint" — Part A: commit to ONE prediction BEFORE investigating (no data or results yet). Part B: design a recording tool BEFORE Stage 4, choosing exactly one of two types: Table (rows + columns) or Tracker (checklist style) — design only, leave it empty. Stage 3 must contain zero actual data or results. Then Stage 4, named "Experiment Zero" if the Core Skill is Science or "Data Analysis" if the Core Skill is Math — do the real work step by step, filling the Stage 3 recording tool with actual results (zero new predictions here), reach a conclusion, then explicitly compare it back to the Stage 3 prediction. Stage 3 and Stage 4 must read as clearly distinct phases — planning only, then execution only.
    Day 3: Stage 5 "What If" (a new, un-researchable twist testing transfer, not lookup — no single right answer, but reasoning must be built on the evidence) → Stage 6 "Leave a Door Open" (the Riser writes ONE genuinely new question, not a summary).
    Close with "Present Your Case" — Day 3 presentation to the group and Guide, using this fixed four-part worksheet every time, never inventing different prompts: 01 Narration (presenter answers "What was this quest about?", "What did you find or conclude?", and "What question are you walking away with?" — the last one restates the Stage 6 question, not a new one); 02 Display (show the Brain Dump, Blueprint, recording tool, and output — no explanation needed, let the work speak); 03 Self Review (presenter answers "One thing that worked" and "One thing I would do differently"); 04 Peer Review (a Fellow Riser, Guide-facilitated, live, answers "I appreciate…", "I observed…", "My question is…").
    Pathfinder only: include a materials list inline here, ONLY if the Quest is physically hands-on; omit entirely if calculation/investigation-only. Seeker and Explorer never include a materials list here — they use the separate Materials to Bring component instead.
@@ -410,9 +378,11 @@ BRANDING: brand name is "Risers' Quests". Quest ID is World-letter + number, e.g
 
 LANGUAGE: never a standalone Quest target. By default it's woven organically into existing writing tasks. If a specific Language Skill is given, deliberately integrate that exact sub-skill into the relevant stage(s) instead.
 
+CONTEXT: the Core Skill (Math or Science) is always the actual skill being taught and tested — Context never replaces or adds to it. By default, freely choose any real-world or fictional setting that fits the World and mission. If a specific Context is given, ground the mission's concrete setting, objects, and scenario in it while the underlying Core Skill stays exactly what was chosen — e.g. Context "Kitchen / Restaurant" with Core Skill "Properties of materials" (Science) means the mission is set in a kitchen and the materials being tested are foods or cookware, but the skill being taught is still properties of materials, not cooking. Never let Context introduce a second skill alongside the Core Skill.
+
 TONE: high-stakes and immersive at every Level. Write for a real child aged 8-14 — never patronizing, never cartoonish. Ground every Quest in something that could really be true, unless the World is Fantasy.`;
 
-let state = { world:null, level:null, difficulty:'Easy', coreSkill:null, subject:null, langSkill:'', brief:null, sections:{} };
+let state = { world:null, level:null, difficulty:'Easy', coreSkill:null, subject:null, langSkill:'', context:'', brief:null, sections:{} };
 
 /* Weekly Menu: batch-generate several Quests in one pass, grouped by age band.
    No fixed age-to-Level mapping yet — the Guide picks World/Level/Core Skill per slot. */
@@ -481,12 +451,6 @@ function renderDifficultyRow(){
 const CORE_SKILL_SUBJECTS = [
   { key:'math', label:'Math', skills:MATH_SKILLS },
   { key:'science', label:'Science', skills:SCIENCE_SKILLS },
-  { key:'history', label:'History', skills:HISTORY_SKILLS },
-  { key:'politics', label:'Politics & Civics', skills:POLITICS_SKILLS },
-  { key:'humanOrigins', label:'Human Origins', skills:HUMAN_ORIGINS_SKILLS },
-  { key:'automotive', label:'Automotive Engineering', skills:AUTOMOTIVE_SKILLS },
-  { key:'manufacturing', label:'Manufacturing', skills:MANUFACTURING_SKILLS },
-  { key:'fashion', label:'Fashion', skills:FASHION_SKILLS },
 ];
 
 function appendCoreSkillOptgroups(sel){
@@ -513,6 +477,13 @@ function renderLangSelect(){
   sel.innerHTML = '<option value="">— integrate organically (default) —</option>';
   LANGUAGE_SKILLS.forEach(s=> sel.appendChild(el('option',{value:s, html:s})));
   sel.onchange = ()=>{ state.langSkill = sel.value; };
+}
+
+function renderContextSelect(){
+  const sel = document.getElementById('contextSelect');
+  sel.innerHTML = '<option value="">— any fitting setting (default) —</option>';
+  CONTEXTS.forEach(s=> sel.appendChild(el('option',{value:s, html:s})));
+  sel.onchange = ()=>{ state.context = sel.value; };
 }
 
 function updateHint(){
@@ -581,7 +552,7 @@ function stripJsonFence(text){
 }
 
 function buildContextLine(){
-  return `World: ${state.world}\nLevel: ${state.level}\nDifficulty: ${state.difficulty}\nCore Skill: ${state.coreSkill}\nSubject: ${state.subject}\nLanguage Skill: ${state.langSkill || 'none — integrate organically'}`;
+  return `World: ${state.world}\nLevel: ${state.level}\nDifficulty: ${state.difficulty}\nCore Skill: ${state.coreSkill}\nSubject: ${state.subject}\nLanguage Skill: ${state.langSkill || 'none — integrate organically'}\nContext: ${state.context || 'none — choose any fitting setting'}`;
 }
 
 /* Build the cross-section context to pass into a given section's prompt */
@@ -646,7 +617,7 @@ async function generateAll(){
   try {
     const briefRaw = await callClaude(
       MASTER_SPEC,
-      `Generate the foundational Mission Brief for a new Quest.\n${buildContextLine()}\n\nRespond with this exact JSON shape: {"questId": string (World-letter + 2-digit number, e.g. "M-07"), "missionTitle": string, "stage4Name": string (a short, fitting Stage 4 name per the rules — "Experiment Zero" for Science, "Data Analysis" for Math, or another fitting name for the Core Skill's subject otherwise), "requiresLinks": boolean (true only if Level is exactly "Explorer" AND a genuine procedural gap is needed), "linkGapDescription": string or null, "requiresMaterials": boolean (true only if Level is "Seeker" or "Explorer" AND the Quest is physically hands-on, meaning the Riser needs to bring materials from home for Day 2)}`
+      `Generate the foundational Mission Brief for a new Quest.\n${buildContextLine()}\n\nRespond with this exact JSON shape: {"questId": string (World-letter + 2-digit number, e.g. "M-07"), "missionTitle": string, "stage4Name": string ("Experiment Zero" or "Data Analysis" per the rules), "requiresLinks": boolean (true only if Level is exactly "Explorer" AND a genuine procedural gap is needed), "linkGapDescription": string or null, "requiresMaterials": boolean (true only if Level is "Seeker" or "Explorer" AND the Quest is physically hands-on, meaning the Riser needs to bring materials from home for Day 2)}`
     );
     brief = JSON.parse(stripJsonFence(briefRaw));
     if(state.level !== 'Explorer') brief.requiresLinks = false;
@@ -907,7 +878,7 @@ async function saveCurrentQuest(){
   try {
     await storage.set('quest:'+state.brief.questId, JSON.stringify({
       brief: state.brief, world: state.world, level: state.level, difficulty: state.difficulty,
-      coreSkill: state.coreSkill, langSkill: state.langSkill, sections: state.sections
+      coreSkill: state.coreSkill, langSkill: state.langSkill, context: state.context, sections: state.sections
     }));
   } catch(e){ /* storage best-effort */ }
 }
@@ -940,7 +911,7 @@ async function renderSavedList(){
 
 function reopenQuest(data){
   state = { world:data.world, level:data.level, difficulty:data.difficulty || 'Easy', coreSkill:data.coreSkill, subject:null,
-            langSkill:data.langSkill, brief:data.brief, sections:data.sections };
+            langSkill:data.langSkill, context:data.context || '', brief:data.brief, sections:data.sections };
   renderLevelRow();
   updateDifficultyVisibility();
   const caseArea = document.getElementById('caseArea');
@@ -980,7 +951,7 @@ function rebuildMenuSlots(){
   menuConfig.forEach((band, bandIdx)=>{
     for(let i=0;i<band.count;i++){
       const existing = menuSlots.find(s=> s.bandIdx===bandIdx && s.slotIdx===i);
-      next.push(existing || { bandIdx, slotIdx:i, bandLabel: band.label, world:null, level:null, difficulty:'Easy', coreSkill:null, subject:null, langSkill:'' });
+      next.push(existing || { bandIdx, slotIdx:i, bandLabel: band.label, world:null, level:null, difficulty:'Easy', coreSkill:null, subject:null, langSkill:'', context:'' });
     }
   });
   menuSlots = next;
@@ -1069,6 +1040,13 @@ function buildMenuSlotCard(slot){
   langSel.onchange = ()=>{ slot.langSkill = langSel.value; };
   card.appendChild(langSel);
 
+  const ctxSel = el('select');
+  ctxSel.innerHTML = '<option value="">— any fitting setting (default) —</option>';
+  CONTEXTS.forEach(s=> ctxSel.appendChild(el('option',{value:s, html:s})));
+  ctxSel.value = slot.context || '';
+  ctxSel.onchange = ()=>{ slot.context = ctxSel.value; };
+  card.appendChild(ctxSel);
+
   return card;
 }
 
@@ -1114,10 +1092,11 @@ async function generateMenu(){
     state.coreSkill = slot.coreSkill;
     state.subject = slot.subject;
     state.langSkill = slot.langSkill || '';
+    state.context = slot.context || '';
     await generateAll();
     menuResults.push({
       bandLabel: slot.bandLabel, world: state.world, level: state.level, difficulty: state.difficulty,
-      coreSkill: state.coreSkill, langSkill: state.langSkill,
+      coreSkill: state.coreSkill, langSkill: state.langSkill, context: state.context,
       brief: state.brief, sections: {...state.sections},
     });
     renderMenuRoster();
@@ -1149,6 +1128,7 @@ renderDifficultyRow();
 updateDifficultyVisibility();
 renderCoreSkillSelect();
 renderLangSelect();
+renderContextSelect();
 renderSavedList();
 rebuildMenuSlots();
 renderMenuView();
