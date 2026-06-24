@@ -11,6 +11,7 @@
     --paper:#EDE6D6; --card:#F8F4EA; --ink:#20242B; --stamp:#A23B33;
     --brass:#A9824A; --sage:#56705A; --line:#C9BFA8; --line-soft:#DAD2BC;
     --fantasy:#6B5B95; --adventure:#C2792B; --mystery:#2F5F5A; --drama:#A23B33;
+    --navy:#16233D; --gold:#D9B26B;
   }
   *{box-sizing:border-box;}
   body{
@@ -138,18 +139,35 @@
   .print-bar{ display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
   .print-bar .hint{ margin:0; }
 
+  /* Print-only document header/footer band — same treatment for every document, Hook Card included */
+  .print-header, .print-footer{ display:none; }
+
   @media print{
     body{ background:#fff; }
     .mode-tabs, .intake, .menu-view, .print-bar, .placeholder,
-    .folder-actions, .refine-panel, .week2-gate, .saved{ display:none !important; }
+    .folder-actions, .refine-panel, .week2-gate, .saved, #sealRow,
+    .folder-tab, .stream-cursor{ display:none !important; }
     .app{ max-width:none; padding:0; }
     .layout{ display:block; }
-    .seal{ transform:none; }
-    .folder{ border:1px solid #999; margin-bottom:0; }
+    .folder{ border:1px solid #ccc; margin-bottom:0; }
     .folder + .folder{ page-break-before:always; break-before:page; }
-    .folder-tab{ background:none; color:#000; border-bottom:1px solid #999; }
-    .folder-tab .status, .stream-cursor{ display:none; }
     .folder-body.collapsed{ display:block !important; }
+    .folder-body{ padding:24px 26px; }
+
+    .print-header{
+      display:flex; justify-content:space-between; align-items:center; gap:14px;
+      background:var(--navy); color:var(--card); padding:14px 24px;
+      border-bottom:3px solid var(--gold);
+    }
+    .print-header .pb-breadcrumb{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; opacity:0.85; }
+    .print-header .pb-title{ font-family:'Fraunces', serif; font-weight:700; font-size:16px; text-align:center; }
+    .print-header .pb-meta{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--gold); white-space:nowrap; }
+
+    .print-footer{
+      display:flex; justify-content:space-between; border-top:1px solid var(--line);
+      padding:8px 24px; font-family:'IBM Plex Mono', monospace; font-size:9.5px;
+      letter-spacing:0.06em; text-transform:uppercase; opacity:0.65;
+    }
   }
   .menu-roster{ margin-top:18px; border-top:1px dashed var(--line); padding-top:14px; }
 </style>
@@ -628,6 +646,12 @@ function buildFolderSkeleton(key){
     cutLine.textContent = '✂ Cut along this line — hand to the Riser at the end of Day 1';
     folder.appendChild(cutLine);
   }
+
+  const brief = state.brief || {};
+  const printHeader = el('div',{class:'print-header'});
+  printHeader.innerHTML = `<span class="pb-breadcrumb">${getSectionLabel(key)}</span><span class="pb-title">${brief.missionTitle||''}</span><span class="pb-meta">${state.world||''} · ${state.level||''}</span>`;
+  folder.appendChild(printHeader);
+
   const tab = el('div',{class:'folder-tab'});
   tab.innerHTML = `<h3>${getSectionLabel(key)}</h3><span class="status mono"><span class="loading-pulse"></span> generating…</span>`;
   tab.onclick = ()=>{
@@ -637,6 +661,11 @@ function buildFolderSkeleton(key){
   const body = el('div',{class:'folder-body', id:'body-'+key});
   folder.appendChild(tab);
   folder.appendChild(body);
+
+  const printFooter = el('div',{class:'print-footer'});
+  printFooter.innerHTML = `<span class="pb-quest">Risers' Quests · ${brief.questId||''}</span><span class="pb-page"></span>`;
+  folder.appendChild(printFooter);
+
   return folder;
 }
 
@@ -1018,6 +1047,15 @@ document.getElementById('generateMenuBtn').onclick = generateMenu;
 document.getElementById('modeSingleBtn').onclick = switchToSingleView;
 document.getElementById('modeMenuBtn').onclick = switchToMenuView;
 document.getElementById('printBtn').onclick = ()=> window.print();
+
+/* Folders (e.g. Materials, Week 2) can be added after page load, so number pages right before print */
+window.addEventListener('beforeprint', ()=>{
+  const folders = document.querySelectorAll('.folder');
+  folders.forEach((f,i)=>{
+    const pageEl = f.querySelector('.pb-page');
+    if(pageEl) pageEl.textContent = `Page ${i+1} of ${folders.length}`;
+  });
+});
 renderWorldGrid();
 renderLevelRow();
 renderDifficultyRow();
